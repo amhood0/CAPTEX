@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Test Run #{{ test_run.id }} - Capability Test Management Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>Test Run #{{ test_run.id }}</h1>
+        <p class="text-muted">Test execution details and results</p>
+        {% if test_run.status not in ['completed', 'failed'] %}
+        <button class="btn btn-outline-primary" data-api-action="/api/test-runs/{{ test_run.id }}?status=running" data-method="PUT">Start manual run</button>
+        <button class="btn btn-success" data-api-action="/api/test-runs/{{ test_run.id }}?status=completed" data-method="PUT" data-confirm="Complete this run? Its results will become read-only.">Complete run</button>
+        <button class="btn btn-outline-danger" data-api-action="/api/test-runs/{{ test_run.id }}?status=failed" data-method="PUT" data-confirm="Mark this run as an execution error?">Mark run failed</button>
+        {% else %}<p>Results are read-only. <a href="/test-runs/new">Create another run</a> to retest.</p>{% endif %}
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="/test-runs" class="btn btn-secondary">Back to Runs</a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Run Information</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Capability:</strong> {{ test_run.capability_version.capability.name }}</p>
+                <p><strong>Capability Version:</strong> {{ test_run.capability_version.version }}</p>
+                <p><strong>Test Plan:</strong> {{ test_run.test_plan.name }}</p>
+                <p><strong>Environment:</strong> {{ test_run.environment.name }}</p>
+                <p><strong>Initiated By:</strong> {{ test_run.initiated_by }}</p>
+                <p>
+                    <strong>Status:</strong> 
+                    <span class="badge bg-info">{{ test_run.status }}</span>
+                </p>
+                <p>
+                    <strong>Overall Result:</strong> 
+                    {% if test_run.overall_result == 'PASS' %}
+                        <span class="badge bg-success">{{ test_run.overall_result }}</span>
+                    {% elif test_run.overall_result == 'FAIL' %}
+                        <span class="badge bg-danger">{{ test_run.overall_result }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ test_run.overall_result or 'N/A' }}</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Timing (UTC) &amp; Error</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Created:</strong> {{ test_run.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                <p><strong>Started:</strong> {{ test_run.started_at.strftime('%Y-%m-%d %H:%M:%S') if test_run.started_at else 'N/A' }}</p>
+                <p><strong>Completed:</strong> {{ test_run.completed_at.strftime('%Y-%m-%d %H:%M:%S') if test_run.completed_at else 'N/A' }}</p>
+                <p><strong>Duration:</strong> {{ test_run.duration if test_run.duration is not none else 'N/A' }} seconds</p>
+                {% if test_run.error_message %}
+                    <div class="alert alert-danger mt-2 mb-0">
+                        <strong>Error:</strong> {{ test_run.error_message }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Test Results</h5>
+<p>{{ recorded }} of {{ total_results }} cases recorded. {{ counts['PASS'] }} PASS, {{ counts['FAIL'] }} FAIL, {{ counts['ERROR'] }} ERROR, {{ counts['SKIPPED'] }} SKIPPED, {{ counts['PENDING'] }} PENDING.</p>
+<form method="get" class="d-flex gap-2"><label for="caseOutcome">Case outcome</label><select name="result_status" id="caseOutcome"><option value="">All cases</option>{% for item in ['PENDING','PASS','FAIL','ERROR','SKIPPED'] %}<option {% if result_status == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select><button class="btn btn-sm btn-outline-primary">Filter cases</button></form>
+            </div>
+            <div class="card-body">
+                {% if results %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Test Case</th>
+                                    <th>Status</th>
+                                    <th>Expected</th>
+                                    <th>Actual</th>
+                                    <th>Exit Code</th>
+                                    <th>Duration</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for result in results %}
+                                    <tr>
+                                        <td><strong>{{ result.test_case.name }}</strong></td>
+                                        <td>
+                                            {% if result.status == 'PASS' %}
+                                                <span class="badge bg-success">{{ result.status }}</span>
+                                            {% elif result.status == 'FAIL' %}
+                                                <span class="badge bg-danger">{{ result.status }}</span>
+                                            {% elif result.status == 'ERROR' %}
+                                                <span class="badge bg-warning">{{ result.status }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ result.status }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td><code>{{ result.expected_result[:30] if result.expected_result else 'N/A' }}</code></td>
+                                        <td><code>{{ result.actual_result[:30] if result.actual_result else 'N/A' }}</code></td>
+                                        <td>{{ result.exit_code if result.exit_code is not none else 'N/A' }}</td>
+                                        <td>{{ result.duration if result.duration is not none else 'N/A' }} ms</td>
+                                        <td>
+                                            {% if test_run.status not in ['completed', 'failed'] %}
+                                            <a href="/test-results/{{ result.id }}/edit" class="btn btn-sm btn-primary">Record / edit</a>
+                                            <button class="btn btn-sm btn-outline-danger" data-api-action="/api/test-results/{{ result.id }}" data-confirm="Clear this recorded result?">Clear</button>
+                                            {% endif %}
+                                            <a href="#result{{ result.id }}" class="btn btn-sm btn-outline-info">Details</a>
+                                        </td>
+                                    </tr>
+                                    <tr id="result{{ result.id }}">
+                                        <td colspan="7">
+                                            <details class="p-3"><summary>Full results and output</summary><strong>Expected result:</strong><pre>{{ result.expected_result or '' }}</pre><strong>Actual result:</strong><pre>{{ result.actual_result or '' }}</pre>
+                                                {% if result.stdout %}
+                                                    <div class="mb-3">
+                                                        <strong>STDOUT:</strong>
+                                                        <pre class="bg-light p-2">{{ result.stdout }}</pre>
+                                                    </div>
+                                                {% endif %}
+                                                {% if result.stderr %}
+                                                    <div class="mb-3">
+                                                        <strong>STDERR:</strong>
+                                                        <pre class="bg-light p-2">{{ result.stderr }}</pre>
+                                                    </div>
+                                                {% endif %}
+                                                {% if result.notes %}
+                                                    <div>
+                                                        <strong>Notes:</strong>
+                                                        <p>{{ result.notes }}</p>
+                                                    </div>
+                                                {% endif %}
+                                            </details>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No cases match this filter. <a href="/test-runs/{{ test_run.id }}">Show all cases</a>.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

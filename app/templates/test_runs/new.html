@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>New manual test run</h1>
+<p>Select a version, an active plan with enabled cases, and an environment. Execute tests manually and record their outcomes here.</p>
+<p>Need to set up a test? <a href="/capabilities">Manage capabilities</a>, <a href="/test-plans">manage plans and cases</a>, or <a href="/environments/new">add an environment</a>.</p>
+{% if not environments %}<p class="text-danger">Create an environment before creating a run.</p>{% endif %}
+<form id="runForm" class="col-md-8">
+<label class="form-label" for="capability">Capability</label><select id="capability" class="form-select mb-3" required></select>
+<label class="form-label" for="version">Version</label><select id="version" class="form-select mb-3" required></select>
+<label class="form-label" for="plan">Test plan</label><select id="plan" class="form-select mb-3" required></select>
+<label class="form-label" for="environment">Environment</label><select id="environment" class="form-select mb-3" required>
+{% for env in environments %}<option value="{{ env.id }}">{{ env.name }} ? {{ env.os }}</option>{% endfor %}</select>
+<label class="form-label" for="initiated">Initiated by</label><input id="initiated" class="form-control mb-3" value="Local user" required>
+<p id="runError" class="text-danger" role="alert"></p>
+<button class="btn btn-primary">Create run</button> <a href="/test-runs" class="btn btn-secondary">Cancel</a>
+</form>
+<script>
+const capabilities = {{ capabilities|tojson }};
+function populate(id, items) {
+    const select = document.getElementById(id);
+    select.replaceChildren();
+    for (const item of items) select.add(new Option(item.name, item.id));
+}
+function updateChoices() {
+    const capability = capabilities.find(c => c.id === Number(document.getElementById('capability').value));
+    populate('version', capability?.versions || []);
+    populate('plan', capability?.plans || []);
+    document.getElementById('runError').textContent = !capability?.versions.length || !capability?.plans.length ? 'Create a version and an active plan with enabled cases before creating a run.' : '';
+}
+populate('capability', capabilities);
+document.getElementById('capability').addEventListener('change', updateChoices);
+updateChoices();
+document.getElementById('runForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    try {
+        const response = await fetch('/api/test-runs', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({
+            capability_version_id: Number(document.getElementById('version').value), test_plan_id: Number(document.getElementById('plan').value),
+            environment_id: Number(document.getElementById('environment').value), initiated_by: document.getElementById('initiated').value
+        })});
+        const data = await response.json();
+        if (!response.ok) throw new Error(window.apiErrorMessage(data));
+        location.assign(`/test-runs/${data.id}`);
+    } catch (error) { document.getElementById('runError').textContent = error.message; }
+});
+</script>
+{% endblock %}

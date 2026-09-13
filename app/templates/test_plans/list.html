@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Test Plans</h1><a href="/test-plans/new" class="btn btn-primary mb-3">New test plan</a>
+<table class="table"><thead><tr><th>Name</th><th>Description</th><th>Active</th><th>Actions</th></tr></thead><tbody>
+{% for item in test_plans %}<tr><td>{{ item.name if item.name is not none else '' }}</td><td>{{ item.description if item.description is not none else '' }}</td><td>{{ item.active if item.active is not none else '' }}</td><td><a href="/test-plans/{{ item.id }}" class="btn btn-sm btn-outline-primary">View</a> <a href="/test-plans/{{ item.id }}/edit" class="btn btn-sm btn-outline-primary">Edit</a>
+<button class="btn btn-sm btn-outline-danger" data-api-action="/api/test-plans/{{ item.id }}" data-confirm="Delete this record? Records referenced by runs cannot be deleted.">Delete</button>
+</td></tr>{% else %}<tr><td colspan="4">No records yet.</td></tr>{% endfor %}
+</tbody></table>
+{% endblock %}

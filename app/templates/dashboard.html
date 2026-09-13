@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Capability Test Management Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1>Dashboard</h1><a href="/test-runs/new" class="btn btn-primary">New manual run</a> <a href="/test-runs" class="btn btn-outline-primary">Browse history</a>
+        <p class="text-muted">Overview of your test capabilities and recent activity</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Total Capabilities</h5>
+                <h2 class="card-text text-primary">{{ total_capabilities }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Total Environments</h5>
+                <h2 class="card-text text-info">{{ total_environments }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Total Test Plans</h5>
+                <h2 class="card-text text-warning">{{ total_test_plans }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Total Test Runs</h5>
+                <h2 class="card-text text-success">{{ total_test_runs }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    {% for label, count in [('Queued', stats.queued), ('In progress', stats.active), ('Completed', stats.completed), ('Execution failures', stats.failed), ('ERROR outcomes', stats.errors), ('Cancelled', stats.cancelled)] %}
+    <div class="col-md-2 mb-3"><div class="card"><div class="card-body"><h5>{{ label }}</h5><p class="fs-3">{{ count }}</p></div></div></div>
+    {% endfor %}
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Pass Rate</h5>
+                <h2 class="card-text">{{ (stats.pass_rate|string + '%') if stats.pass_rate is not none else 'Not available' }}</h2>
+                <small class="text-muted">{{ stats.passed }} passed, {{ stats.not_passed }} failed<br>PASS / (PASS + FAIL), finalized runs only. Errors and cancellations excluded.</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Test Runs</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_runs %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Capability Version</th>
+                                    <th>Test Plan</th>
+                                    <th>Status</th>
+                                    <th>Result</th>
+                                    <th>Created (UTC)</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for run in recent_runs %}
+                                    <tr>
+                                        <td><strong>{{ run.id }}</strong></td>
+                                        <td>{{ run.capability_version.capability.name }} / {{ run.capability_version.version }}</td>
+                                        <td>{{ run.test_plan.name }}</td>
+                                        <td>
+                                            <span class="badge bg-info">{{ run.status }}</span>
+                                        </td>
+                                        <td>
+                                            {% if run.overall_result == 'PASS' %}
+                                                <span class="badge bg-success">{{ run.overall_result }}</span>
+                                            {% elif run.overall_result == 'FAIL' %}
+                                                <span class="badge bg-danger">{{ run.overall_result }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ run.overall_result or 'N/A' }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ run.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>
+                                            <a href="/test-runs/{{ run.id }}" class="btn btn-sm btn-outline-primary">View</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No test runs yet. <a href="/test-runs/new">Create a manual run</a> to get started.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

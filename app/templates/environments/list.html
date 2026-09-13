@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Environments</h1><a href="/environments/new" class="btn btn-primary mb-3">New environment</a>
+<table class="table"><thead><tr><th>Name</th><th>OS</th><th>Version</th><th>Architecture</th><th>Status</th><th>Description</th><th>Actions</th></tr></thead><tbody>
+{% for item in environments %}<tr><td>{{ item.name if item.name is not none else '' }}</td><td>{{ item.os if item.os is not none else '' }}</td><td>{{ item.os_version if item.os_version is not none else '' }}</td><td>{{ item.architecture if item.architecture is not none else '' }}</td><td>{{ item.status if item.status is not none else '' }}</td><td>{{ item.description if item.description is not none else '' }}</td><td><a href="/environments/{{ item.id }}/edit" class="btn btn-sm btn-outline-primary">Edit</a>
+<button class="btn btn-sm btn-outline-danger" data-api-action="/api/environments/{{ item.id }}" data-confirm="Delete this record? Records referenced by runs cannot be deleted.">Delete</button>
+</td></tr>{% else %}<tr><td colspan="7">No records yet.</td></tr>{% endfor %}
+</tbody></table>
+{% endblock %}

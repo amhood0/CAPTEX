@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ title }}</h1>
+<form id="editForm" class="col-md-8">
+{% for name, label, type, required in fields %}
+<div class="mb-3">
+{% if type != "hidden" %}<label for="{{ name }}" class="form-label">{{ label }}</label>{% endif %}
+{% if type == 'select' %}
+<select id="{{ name }}" name="{{ name }}" class="form-select" {% if required %}required{% endif %}>
+{% for value, text in choices[name] %}<option value="{{ value }}" {% if record[name] == value %}selected{% endif %}>{{ text }}</option>{% endfor %}
+</select>
+{% elif type == 'textarea' %}
+<textarea id="{{ name }}" name="{{ name }}" class="form-control" rows="3">{{ record[name] or '' }}</textarea>
+{% elif type == 'checkbox' %}
+<input id="{{ name }}" name="{{ name }}" type="checkbox" {% if record[name] %}checked{% endif %}>
+{% else %}
+<input id="{{ name }}" name="{{ name }}" type="{{ type }}" class="form-control" value="{{ record[name] if record[name] is defined and record[name] is not none else '' }}" {% if required %}required{% endif %}>
+{% endif %}
+</div>
+{% endfor %}
+<p id="saveError" class="text-danger" role="alert"></p>
+<button type="submit" class="btn btn-primary">Save</button>
+<a href="{{ back }}" class="btn btn-secondary">Cancel</a>
+</form>
+<script>
+document.getElementById('editForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const submit = event.target.querySelector('button[type=submit]');
+    submit.disabled = true;
+    document.getElementById('saveError').textContent = '';
+    const data = {};
+    for (const field of event.target.elements) {
+        if (!field.name) continue;
+        if (field.type === 'checkbox') data[field.name] = field.checked;
+        else if (field.type === 'number' || field.name.endsWith('_id')) data[field.name] = field.value === '' ? null : Number(field.value);
+        else data[field.name] = field.value;
+    }
+    try {
+        const response = await fetch({{ endpoint|tojson }}, {
+            method: {{ (method|default('PUT'))|tojson }}, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(window.apiErrorMessage(error));
+        }
+        location.assign({{ back|tojson }});
+    } catch (error) {
+        document.getElementById('saveError').textContent = error.message;
+        submit.disabled = false;
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}{{ status_code }} - CAPTEX{% endblock %}
+{% block content %}
+<h1>{{ status_code }} - {{ title }}</h1>
+<p role="alert">{{ message }}</p>
+<p>Review the request and try again.</p>
+<a href="/dashboard" class="btn btn-primary">Dashboard</a> <a href="/test-runs" class="btn btn-secondary">Run history</a>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ plan.name }}</h1>
+<p>{{ plan.description or '' }}</p>
+<p>Capability: {{ plan.capability.name }}</p>
+<a href="/test-plans/{{ plan.id }}/edit" class="btn btn-outline-primary">Edit plan</a>
+<a href="/test-plans/{{ plan.id }}/cases/new" class="btn btn-primary">Add test case</a>
+<a href="/test-runs/new" class="btn btn-outline-primary">New manual run</a>
+<a href="/test-plans" class="btn btn-secondary">Back to plans</a>
+<table class="table mt-3">
+<thead><tr><th>Order</th><th>Test case</th><th>Type</th><th>Expected result</th><th>Enabled</th><th>Actions</th></tr></thead>
+<tbody>{% for case in plan.test_cases|sort(attribute='execution_order') %}
+<tr><td>{{ case.execution_order }}</td><td>{{ case.name }}</td><td>{{ case.test_type }}</td><td>{{ case.expected_result or '' }}</td><td>{{ case.enabled }}</td><td><a href="/test-cases/{{ case.id }}/edit" class="btn btn-sm btn-outline-primary">Edit</a> <button class="btn btn-sm btn-outline-danger" data-api-action="/api/test-cases/{{ case.id }}" data-confirm="Delete this test case? Cases referenced by runs cannot be deleted.">Delete</button></td></tr>
+{% else %}<tr><td colspan="6">No test cases yet.</td></tr>{% endfor %}</tbody>
+</table>
+{% endblock %}
