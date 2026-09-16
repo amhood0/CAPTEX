@@ -25,9 +25,6 @@
 <script>
 document.getElementById('editForm').addEventListener('submit', async (event) => {
     event.preventDefault();
-    const submit = event.target.querySelector('button[type=submit]');
-    submit.disabled = true;
-    document.getElementById('saveError').textContent = '';
     const data = {};
     for (const field of event.target.elements) {
         if (!field.name) continue;
@@ -41,12 +38,11 @@ document.getElementById('editForm').addEventListener('submit', async (event) => 
         });
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(window.apiErrorMessage(error));
+            throw new Error(typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail));
         }
         location.assign({{ back|tojson }});
     } catch (error) {
         document.getElementById('saveError').textContent = error.message;
-        submit.disabled = false;
     }
 });
 </script>

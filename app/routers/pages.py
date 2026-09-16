@@ -1,7 +1,7 @@
 """
 Pages router for serving web pages
 """
-from fastapi import APIRouter, Request, Query, HTTPException
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from pathlib import Path
 from sqlalchemy.orm import Session
@@ -9,9 +9,7 @@ from fastapi import Depends
 from app.database import get_db
 from app.models import Capability, CapabilityVersion, Environment, TestPlan, TestRun, TestCase, TestResult
 import jinja2
-from app.services.history import history_query, load_run_details, RUN_STATUSES, OUTCOMES
-from app.services.statistics import run_statistics
-from collections import Counter
+from app.services.history import history_query
 
 # Setup templates
 templates_dir = Path(__file__).parent.parent / "templates"
@@ -43,17 +41,25 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
     total_test_runs = db.query(TestRun).count()
     
     # Get recent test runs
-    recent_runs = load_run_details(history_query(db)).limit(5).all()
+    recent_runs = db.query(TestRun).order_by(TestRun.created_at.desc()).limit(5).all()
     
-    stats = run_statistics(db)
-
+    # Calculate pass/fail stats
+    pass_count = db.query(TestRun).filter(TestRun.overall_result == "PASS").count()
+    fail_count = db.query(TestRun).filter(TestRun.overall_result == "FAIL").count()
+    
+    pass_rate = 0
+    if total_test_runs > 0:
+        pass_rate = (pass_count / total_test_runs) * 100
+    
     html = render_template("dashboard.html", {
         "request": request,
         "total_capabilities": total_capabilities,
         "total_environments": total_environments,
         "total_test_plans": total_test_plans,
         "total_test_runs": total_test_runs,
-        "stats": stats,
+        "pass_count": pass_count,
+        "fail_count": fail_count,
+        "pass_rate": round(pass_rate, 1),
         "recent_runs": recent_runs,
     }, request=request)
     return HTMLResponse(html)
@@ -96,7 +102,6 @@ def capability_detail(request: Request, capability_id: int, db: Session = Depend
     html = render_template("capabilities/detail.html", {
         "request": request,
         "capability": capability,
-        "stats": run_statistics(db, capability_id),
         "versions": versions,
         "test_plans": test_plans,
         "recent_runs": recent_runs,
@@ -129,48 +134,31 @@ def list_test_plans(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/test-runs", response_class=HTMLResponse)
-def list_test_runs(
-    request: Request, q: str = "", status: str = "", overall_result: str = "",
-    capability_id: str = "", environment_id: str = "", date_from: str = "", date_to: str = "",
-    page: int = Query(1, ge=1), page_size: int = Query(25, ge=1, le=100), db: Session = Depends(get_db),
-):
-    """Paginated run history; pagination retains every selected filter."""
-    query = history_query(db, q, status, overall_result, capability_id, environment_id, date_from, date_to)
-    total = query.order_by(None).count()
-    page_count = max(1, (total + page_size - 1) // page_size)
-    page = min(page, page_count)
-    runs = load_run_details(query).offset((page - 1) * page_size).limit(page_size).all()
-    context = dict(test_runs=runs, q=q, status=status, overall_result=overall_result,
-        capability_id=capability_id, environment_id=environment_id, date_from=date_from, date_to=date_to,
-        total=total, page=page, page_count=page_count, page_size=page_size,
-        previous_url=str(request.url.include_query_params(page=page - 1)) if page > 1 else None,
-        next_url=str(request.url.include_query_params(page=page + 1)) if page < page_count else None,
-        capabilities=db.query(Capability).order_by(Capability.name).all(),
-        environments=db.query(Environment).order_by(Environment.name).all(), statuses=RUN_STATUSES, outcomes=OUTCOMES)
-    return HTMLResponse(render_template("test_runs/list.html", context, request=request))
+def list_test_runs(request: Request, q: str = "", status: str = "", overall_result: str = "", db: Session = Depends(get_db)):
+    """List all test runs"""
+    test_runs = history_query(db, q, status, overall_result).all()
+    
+    html = render_template("test_runs/list.html", {
+        "request": request,
+        "test_runs": test_runs, "q": q, "status": status, "overall_result": overall_result,
+    }, request=request)
+    return HTMLResponse(html)
 
 
 @router.get("/test-runs/{run_id}", response_class=HTMLResponse)
-def test_run_detail(request: Request, run_id: int, result_status: str = "", db: Session = Depends(get_db)):
+def test_run_detail(request: Request, run_id: int, db: Session = Depends(get_db)):
     """Test run detail page"""
     test_run = db.query(TestRun).filter(TestRun.id == run_id).first()
     if not test_run:
         html = render_template("404.html", {"request": request}, request=request)
         return HTMLResponse(html, status_code=404)
     
-    if result_status and result_status not in ("PENDING", "PASS", "FAIL", "ERROR", "SKIPPED"):
-        raise HTTPException(422, "Unknown case outcome")
-    results = db.query(TestResult).filter(TestResult.test_run_id == run_id).order_by(TestResult.id).all()
-    counts = Counter(result.status for result in results)
-    total_results = len(results)
-    if result_status:
-        results = [result for result in results if result.status == result_status]
+    results = db.query(TestResult).filter(TestResult.test_run_id == run_id).all()
     
     html = render_template("test_runs/detail.html", {
         "request": request,
         "test_run": test_run,
-        "results": results, "counts": counts, "total_results": total_results,
-        "recorded": total_results - counts["PENDING"], "result_status": result_status,
+        "results": results,
     }, request=request)
     return HTMLResponse(html)
 

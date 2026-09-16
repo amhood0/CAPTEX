@@ -51,7 +51,7 @@
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">Timing (UTC) &amp; Error</h5>
+                <h5 class="mb-0">Timing & Error</h5>
             </div>
             <div class="card-body">
                 <p><strong>Created:</strong> {{ test_run.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
@@ -72,9 +72,7 @@
     <div class="col-md-12">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">Test Results</h5>
-<p>{{ recorded }} of {{ total_results }} cases recorded. {{ counts['PASS'] }} PASS, {{ counts['FAIL'] }} FAIL, {{ counts['ERROR'] }} ERROR, {{ counts['SKIPPED'] }} SKIPPED, {{ counts['PENDING'] }} PENDING.</p>
-<form method="get" class="d-flex gap-2"><label for="caseOutcome">Case outcome</label><select name="result_status" id="caseOutcome"><option value="">All cases</option>{% for item in ['PENDING','PASS','FAIL','ERROR','SKIPPED'] %}<option {% if result_status == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select><button class="btn btn-sm btn-outline-primary">Filter cases</button></form>
+                <h5 class="mb-0">Test Results ({{ results|length }})</h5>
             </div>
             <div class="card-body">
                 {% if results %}
@@ -115,12 +113,12 @@
                                             <a href="/test-results/{{ result.id }}/edit" class="btn btn-sm btn-primary">Record / edit</a>
                                             <button class="btn btn-sm btn-outline-danger" data-api-action="/api/test-results/{{ result.id }}" data-confirm="Clear this recorded result?">Clear</button>
                                             {% endif %}
-                                            <a href="#result{{ result.id }}" class="btn btn-sm btn-outline-info">Details</a>
+                                            <button class="btn btn-sm btn-outline-info" data-bs-toggle="collapse" data-bs-target="#result{{ result.id }}">Details</button>
                                         </td>
                                     </tr>
-                                    <tr id="result{{ result.id }}">
+                                    <tr class="collapse" id="result{{ result.id }}">
                                         <td colspan="7">
-                                            <details class="p-3"><summary>Full results and output</summary><strong>Expected result:</strong><pre>{{ result.expected_result or '' }}</pre><strong>Actual result:</strong><pre>{{ result.actual_result or '' }}</pre>
+                                            <div class="p-3"><strong>Expected result:</strong><pre>{{ result.expected_result or '' }}</pre><strong>Actual result:</strong><pre>{{ result.actual_result or '' }}</pre>
                                                 {% if result.stdout %}
                                                     <div class="mb-3">
                                                         <strong>STDOUT:</strong>
@@ -139,7 +137,7 @@
                                                         <p>{{ result.notes }}</p>
                                                     </div>
                                                 {% endif %}
-                                            </details>
+                                            </div>
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -147,7 +145,7 @@
                         </table>
                     </div>
                 {% else %}
-                    <p class="text-muted">No cases match this filter. <a href="/test-runs/{{ test_run.id }}">Show all cases</a>.</p>
+                    <p class="text-muted">No test results yet.</p>
                 {% endif %}
             </div>
         </div>
