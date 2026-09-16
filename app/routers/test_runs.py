@@ -29,16 +29,12 @@ def list_test_runs(
     q: str = "",
     status: str = "",
     overall_result: str = "",
-    capability_id: str = "",
-    environment_id: str = "",
-    date_from: str = "",
-    date_to: str = "",
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
     db: Session = Depends(get_db)
 ):
     """List all test runs"""
-    return history_query(db, q, status, overall_result, capability_id, environment_id, date_from, date_to).offset(skip).limit(limit).all()
+    return history_query(db, q, status, overall_result).offset(skip).limit(limit).all()
 
 
 @router.post("/test-runs", response_model=TestRunResponse)
