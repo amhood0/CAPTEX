@@ -3,11 +3,25 @@ Pydantic schemas for request/response validation
 """
 from datetime import datetime
 from typing import Optional, List, Literal
-from pydantic import BaseModel, Field, ConfigDict, model_validator
+from pydantic import BaseModel, Field, ConfigDict, model_validator, field_validator
 
 
 
-class UpdateModel(BaseModel):
+class InputModel(BaseModel):
+    """Reject misspelled fields and empty identifiers without altering result text."""
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def trim_identifiers(cls, value, info):
+        if info.field_name in {"name", "category", "os", "version", "architecture", "initiated_by"} and isinstance(value, str):
+            value = value.strip()
+            if not value:
+                raise ValueError("Must not be blank")
+        return value
+
+
+class UpdateModel(InputModel):
     """Allow omitted fields, but reject null for required database values."""
     @model_validator(mode="before")
     @classmethod
@@ -33,7 +47,7 @@ class CapabilityBase(BaseModel):
     active: bool = True
 
 
-class CapabilityCreate(CapabilityBase):
+class CapabilityCreate(CapabilityBase, InputModel):
     """Create capability schema"""
     pass
 
@@ -63,14 +77,14 @@ class CapabilityVersionBase(BaseModel):
     """Base capability version schema"""
     version: str = Field(..., min_length=1, max_length=50)
     description: Optional[str] = None
-    artifact_path: Optional[str] = None
-    repository_url: Optional[str] = None
-    commit_hash: Optional[str] = None
-    entry_point: Optional[str] = None
-    execution_command: Optional[str] = None
+    artifact_path: Optional[str] = Field(None, max_length=500)
+    repository_url: Optional[str] = Field(None, max_length=500)
+    commit_hash: Optional[str] = Field(None, max_length=100)
+    entry_point: Optional[str] = Field(None, max_length=255)
+    execution_command: Optional[str] = Field(None, max_length=500)
 
 
-class CapabilityVersionCreate(CapabilityVersionBase):
+class CapabilityVersionCreate(CapabilityVersionBase, InputModel):
     """Create capability version schema"""
     capability_id: int
 
@@ -79,11 +93,11 @@ class CapabilityVersionUpdate(UpdateModel):
     """Update capability version schema"""
     version: Optional[str] = Field(None, min_length=1, max_length=50)
     description: Optional[str] = None
-    artifact_path: Optional[str] = None
-    repository_url: Optional[str] = None
-    commit_hash: Optional[str] = None
-    entry_point: Optional[str] = None
-    execution_command: Optional[str] = None
+    artifact_path: Optional[str] = Field(None, max_length=500)
+    repository_url: Optional[str] = Field(None, max_length=500)
+    commit_hash: Optional[str] = Field(None, max_length=100)
+    entry_point: Optional[str] = Field(None, max_length=255)
+    execution_command: Optional[str] = Field(None, max_length=500)
 
 
 class CapabilityVersionResponse(CapabilityVersionBase):
@@ -104,13 +118,13 @@ class EnvironmentBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     os: str = Field(..., min_length=1, max_length=100)
     os_version: Optional[str] = Field(None, max_length=50)
-    architecture: str = "x86_64"
-    vagrant_path: Optional[str] = None
-    ansible_inventory: Optional[str] = None
+    architecture: str = Field("x86_64", min_length=1, max_length=50)
+    vagrant_path: Optional[str] = Field(None, max_length=500)
+    ansible_inventory: Optional[str] = Field(None, max_length=500)
     description: Optional[str] = None
 
 
-class EnvironmentCreate(EnvironmentBase):
+class EnvironmentCreate(EnvironmentBase, InputModel):
     """Create environment schema"""
     pass
 
@@ -120,9 +134,9 @@ class EnvironmentUpdate(UpdateModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     os: Optional[str] = Field(None, min_length=1, max_length=100)
     os_version: Optional[str] = Field(None, max_length=50)
-    architecture: Optional[str] = None
-    vagrant_path: Optional[str] = None
-    ansible_inventory: Optional[str] = None
+    architecture: Optional[str] = Field(None, min_length=1, max_length=50)
+    vagrant_path: Optional[str] = Field(None, max_length=500)
+    ansible_inventory: Optional[str] = Field(None, max_length=500)
     description: Optional[str] = None
     status: Optional[Literal["available", "in_use", "error"]] = None
 
@@ -147,7 +161,7 @@ class TestPlanBase(BaseModel):
     active: bool = True
 
 
-class TestPlanCreate(TestPlanBase):
+class TestPlanCreate(TestPlanBase, InputModel):
     """Create test plan schema"""
     capability_id: int
 
@@ -179,12 +193,12 @@ class TestCaseBase(BaseModel):
     description: Optional[str] = None
     test_type: Literal["exit_code", "stdout_contains", "file_exists"]
     expected_result: Optional[str] = None
-    execution_order: int = 0
+    execution_order: int = Field(0, ge=0)
     timeout: int = Field(30, gt=0)
     enabled: bool = True
 
 
-class TestCaseCreate(TestCaseBase):
+class TestCaseCreate(TestCaseBase, InputModel):
     """Create test case schema"""
     test_plan_id: int
 
@@ -195,7 +209,7 @@ class TestCaseUpdate(UpdateModel):
     description: Optional[str] = None
     test_type: Optional[Literal["exit_code", "stdout_contains", "file_exists"]] = None
     expected_result: Optional[str] = None
-    execution_order: Optional[int] = None
+    execution_order: Optional[int] = Field(None, ge=0)
     timeout: Optional[int] = Field(None, gt=0)
     enabled: Optional[bool] = None
 
@@ -218,10 +232,10 @@ class TestRunBase(BaseModel):
     capability_version_id: int
     test_plan_id: int
     environment_id: int
-    initiated_by: str = "system"
+    initiated_by: str = Field("system", min_length=1, max_length=255)
 
 
-class TestRunCreate(TestRunBase):
+class TestRunCreate(TestRunBase, InputModel):
     """Create test run schema"""
     pass
 
@@ -261,7 +275,7 @@ class TestResultBase(BaseModel):
     notes: Optional[str] = None
 
 
-class TestResultCreate(TestResultBase):
+class TestResultCreate(TestResultBase, InputModel):
     """Create test result schema"""
     test_run_id: int
     test_case_id: int

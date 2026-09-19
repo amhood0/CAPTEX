@@ -40,7 +40,10 @@
                                 {% if version.description %}
                                     <br><small class="text-muted">{{ version.description }}</small>
                                 {% endif %}
-                                {% if version.entry_point %}
+                                <details><summary>Version configuration</summary><dl>
+{% for key, label in [('artifact_path','Artifact path'), ('repository_url','Repository'), ('commit_hash','Commit'), ('execution_command','Execution command')] %}
+<dt>{{ label }}</dt><dd><code>{{ version[key] or 'Not set' }}</code></dd>{% endfor %}</dl></details>
+{% if version.entry_point %}
                                     <br><small>Entry: {{ version.entry_point }}</small>
                                 {% endif %}
                                 <div class="mt-2">
@@ -139,6 +142,11 @@
     </div>
 </div>
 
+<section class="card my-3"><div class="card-body"><h2 class="h5">Run summary</h2>
+<p>{{ stats.total }} runs: {{ stats.queued }} queued, {{ stats.active }} in progress, {{ stats.completed }} completed, {{ stats.failed }} execution failures.</p>
+<p>{{ stats.passed }} PASS, {{ stats.not_passed }} FAIL, {{ stats.errors }} ERROR. Pass rate: {{ (stats.pass_rate|string + '%') if stats.pass_rate is not none else 'Not available' }}.</p>
+<a href="/test-runs?capability_id={{ capability.id }}">View all history for this capability</a>
+</div></section>
 <!-- New Version Modal -->
 <div class="modal fade" id="newVersionModal" tabindex="-1">
     <div class="modal-dialog">

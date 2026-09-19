@@ -5,7 +5,7 @@
 {% block content %}
 <div class="row mb-4">
     <div class="col-md-12">
-        <h1>Dashboard</h1>
+        <h1>Dashboard</h1><a href="/test-runs/new" class="btn btn-primary">New manual run</a> <a href="/test-runs" class="btn btn-outline-primary">Browse history</a>
         <p class="text-muted">Overview of your test capabilities and recent activity</p>
     </div>
 </div>
@@ -46,12 +46,15 @@
 </div>
 
 <div class="row mb-4">
+    {% for label, count in [('Queued', stats.queued), ('In progress', stats.active), ('Completed', stats.completed), ('Execution failures', stats.failed), ('ERROR outcomes', stats.errors), ('Cancelled', stats.cancelled)] %}
+    <div class="col-md-2 mb-3"><div class="card"><div class="card-body"><h5>{{ label }}</h5><p class="fs-3">{{ count }}</p></div></div></div>
+    {% endfor %}
     <div class="col-md-4">
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Pass Rate</h5>
-                <h2 class="card-text">{{ pass_rate }}%</h2>
-                <small class="text-muted">{{ pass_count }} passed, {{ fail_count }} failed</small>
+                <h2 class="card-text">{{ (stats.pass_rate|string + '%') if stats.pass_rate is not none else 'Not available' }}</h2>
+                <small class="text-muted">{{ stats.passed }} passed, {{ stats.not_passed }} failed<br>PASS / (PASS + FAIL), finalized runs only. Errors and cancellations excluded.</small>
             </div>
         </div>
     </div>
@@ -74,7 +77,7 @@
                                     <th>Test Plan</th>
                                     <th>Status</th>
                                     <th>Result</th>
-                                    <th>Started</th>
+                                    <th>Created (UTC)</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -82,7 +85,7 @@
                                 {% for run in recent_runs %}
                                     <tr>
                                         <td><strong>{{ run.id }}</strong></td>
-                                        <td>{{ run.capability_version.version }}</td>
+                                        <td>{{ run.capability_version.capability.name }} / {{ run.capability_version.version }}</td>
                                         <td>{{ run.test_plan.name }}</td>
                                         <td>
                                             <span class="badge bg-info">{{ run.status }}</span>
@@ -106,7 +109,7 @@
                         </table>
                     </div>
                 {% else %}
-                    <p class="text-muted">No test runs yet. Create a test run to get started.</p>
+                    <p class="text-muted">No test runs yet. <a href="/test-runs/new">Create a manual run</a> to get started.</p>
                 {% endif %}
             </div>
         </div>
