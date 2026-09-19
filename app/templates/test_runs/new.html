@@ -38,7 +38,7 @@ document.getElementById('runForm').addEventListener('submit', async event => {
             environment_id: Number(document.getElementById('environment').value), initiated_by: document.getElementById('initiated').value
         })});
         const data = await response.json();
-        if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail));
+        if (!response.ok) throw new Error(window.apiErrorMessage(data));
         location.assign(`/test-runs/${data.id}`);
     } catch (error) { document.getElementById('runError').textContent = error.message; }
 });

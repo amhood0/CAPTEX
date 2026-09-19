@@ -15,6 +15,9 @@ app = FastAPI(
     description="A platform for managing and executing capability tests"
 )
 
+from app.errors import register_error_handlers
+register_error_handlers(app)
+
 # Mount static files
 static_path = Path(__file__).parent / "static"
 if static_path.exists():
