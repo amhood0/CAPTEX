@@ -1,0 +1,13 @@
+# CAPTEX Phase 4: one managed Ubuntu VM, no capability execution yet.
+Vagrant.configure("2") do |config|
+  config.vm.box = "bento/ubuntu-24.04"
+  config.vm.box_version = "202510.26.0"
+  config.vm.box_check_update = false
+  config.vm.hostname = "captex-ubuntu"
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+  config.vm.provider "vmware_desktop" do |provider|
+    provider.gui = false
+    provider.vmx["memsize"] = "2048"
+    provider.vmx["numvcpus"] = "2"
+  end
+end
