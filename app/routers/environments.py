@@ -70,6 +70,9 @@ def update_environment(
         if existing:
             raise HTTPException(status_code=400, detail="Environment with this name already exists")
     
+    from app.routers.virtualization import is_managed
+    if is_managed(db_environment.vagrant_path) and "vagrant_path" in environment.model_fields_set and not is_managed(environment.vagrant_path):
+        raise HTTPException(409, "The managed VM mapping cannot be changed through the environment editor")
     update_data = environment.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_environment, key, value)
@@ -90,6 +93,9 @@ def delete_environment(
     if not db_environment:
         raise HTTPException(status_code=404, detail="Environment not found")
     
+    from app.routers.virtualization import is_managed
+    if is_managed(db_environment.vagrant_path):
+        raise HTTPException(409, "The managed VM environment cannot be deleted; use Virtualization to stop its VM")
     if db_environment.test_runs:
         raise HTTPException(status_code=409, detail="Cannot delete a record with run history")
     db.delete(db_environment)

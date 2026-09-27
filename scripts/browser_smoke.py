@@ -21,6 +21,11 @@ def main():
         import httpx
         import uvicorn
         from playwright.sync_api import sync_playwright, expect
+        from app.routers.virtualization import get_vm_manager
+        from app.services.vm_operations import OperationManager
+        from tests.test_virtualization import FakeVagrant
+        vm_manager = OperationManager(Path(directory) / "vm-operations", FakeVagrant())
+        app.dependency_overrides[get_vm_manager] = lambda: vm_manager
         migrate(settings.DATABASE_URL)
         listener = socket.socket()
         listener.bind(("127.0.0.1", 0))
@@ -114,13 +119,26 @@ def main():
                 expect(page.get_by_role("link", name="View", exact=True)).to_have_count(10)
                 page.goto(base + "/test-plans/999/edit")
                 expect(page.get_by_role("heading", name="404 - Page not found")).to_be_visible()
+                page.goto(base + "/virtualization")
+                page.get_by_role("button", name="Register Ubuntu environment", exact=True).click()
+                expect(page.get_by_role("button", name="Start VM", exact=True)).to_be_visible()
+                page.get_by_role("button", name="Check prerequisites", exact=True).click()
+                expect(page.locator("#vmMessage")).to_contain_text("All prerequisites are ready")
+                page.get_by_role("button", name="Start VM", exact=True).click()
+                expect(page.locator("#vmState")).to_contain_text("running")
+                page.get_by_role("button", name="Refresh VM status", exact=True).click()
+                expect(page.locator("#vmMessage")).to_contain_text("succeeded")
+                page.get_by_role("button", name="Stop VM", exact=True).click()
+                expect(page.locator("#vmState")).to_contain_text("poweroff")
                 assert not errors, errors
                 browser.close()
-            print("Browser workflow passed: environment edit, plan/case creation, manual run, results, completion, history pagination, dashboard statistics, and validation errors.")
+            print("Browser workflow passed: environment edit, plan/case creation, manual run, results, completion, history pagination, dashboard statistics, validation errors, and VM controls (simulated provider).")
         finally:
             server.should_exit = True
             thread.join(timeout=10)
             listener.close()
+            vm_manager.executor.shutdown(wait=True)
+            app.dependency_overrides.pop(get_vm_manager, None)
             engine.dispose()
 
 

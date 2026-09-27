@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Virtualization</h1>
+<p>Manage one Ubuntu 24.04 VM through Vagrant and VMware Workstation. Starting the VM does not run capability tests.</p>
+<p>Box: <code>{{ box }}</code>, version <code>{{ box_version }}</code>. Resources: 2 CPUs, 2 GB RAM.</p>
+{% if environment %}
+<p>Environment: <a href="/environments/{{ environment.id }}/edit">{{ environment.name }}</a></p>
+{% else %}
+<p>Register the managed Ubuntu environment to enable VM controls.</p>
+<button id="registerVM" class="btn btn-primary">Register Ubuntu environment</button>
+{% endif %}
+<div class="my-3 d-flex gap-2">
+<button class="btn btn-outline-primary" data-vm-url="/api/virtualization/check">Check prerequisites</button>
+{% if environment %}
+<button class="btn btn-outline-primary" data-vm-url="/api/environments/{{ environment.id }}/vm/status">Refresh VM status</button>
+<button class="btn btn-success" data-vm-url="/api/environments/{{ environment.id }}/vm/start">Start VM</button>
+<button class="btn btn-outline-danger" data-vm-url="/api/environments/{{ environment.id }}/vm/stop" data-vm-confirm="Stop the managed Ubuntu VM? Save any work inside it first.">Stop VM</button>
+{% endif %}
+</div>
+<p id="vmMessage" role="status" aria-live="polite">Loading last operation...</p>
+<p id="vmError" class="text-danger" role="alert"></p>
+<p id="vmState">VM state: not checked</p>
+<p class="text-muted">Commands run in the background. You can leave this page and return. Start allows up to 15 minutes; stop allows 3 minutes. Only one operation runs at a time.</p>
+<div id="vmChecks"></div>
+<details><summary>Last operation output</summary><pre id="vmOutput" class="bg-light p-3"></pre></details>
+<script src="{{ url_for('static', path='/js/virtualization.js') }}" defer></script>
+{% endblock %}
