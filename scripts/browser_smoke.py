@@ -22,10 +22,16 @@ def main():
         import uvicorn
         from playwright.sync_api import sync_playwright, expect
         from app.routers.virtualization import get_vm_manager
+        from app.routers.automation import get_automation_manager
+        from app.services.ansible import AnsibleService
+        from app.services.automation_operations import AutomationManager
         from app.services.vm_operations import OperationManager
+        from tests.test_ansible import FakeVagrant as FakeAnsibleVagrant
         from tests.test_virtualization import FakeVagrant
         vm_manager = OperationManager(Path(directory) / "vm-operations", FakeVagrant())
+        automation_manager = AutomationManager(Path(directory) / "automation-operations", AnsibleService(FakeAnsibleVagrant()))
         app.dependency_overrides[get_vm_manager] = lambda: vm_manager
+        app.dependency_overrides[get_automation_manager] = lambda: automation_manager
         migrate(settings.DATABASE_URL)
         listener = socket.socket()
         listener.bind(("127.0.0.1", 0))
@@ -130,15 +136,25 @@ def main():
                 expect(page.locator("#vmMessage")).to_contain_text("succeeded")
                 page.get_by_role("button", name="Stop VM", exact=True).click()
                 expect(page.locator("#vmState")).to_contain_text("poweroff")
+                page.goto(base + "/automation")
+                page.get_by_role("button", name="Check connectivity", exact=True).click()
+                expect(page.locator("#automationMessage")).to_contain_text("SSH connectivity succeeded")
+                page.get_by_role("button", name="Prepare Ansible and transfer files", exact=True).click()
+                expect(page.locator("#automationMessage")).to_contain_text("approved files are ready")
+                page.get_by_role("button", name="Run validation playbook", exact=True).click()
+                expect(page.locator("#automationMessage")).to_contain_text("CAPTEX_ANSIBLE_OK")
+                expect(page.locator("#automationSteps li")).to_have_count(8)
                 assert not errors, errors
                 browser.close()
-            print("Browser workflow passed: environment edit, plan/case creation, manual run, results, completion, history pagination, dashboard statistics, validation errors, and VM controls (simulated provider).")
+            print("Browser workflow passed: data management, manual testing, reporting, VM controls, and guest Ansible automation (simulated provider).")
         finally:
             server.should_exit = True
             thread.join(timeout=10)
             listener.close()
             vm_manager.executor.shutdown(wait=True)
+            automation_manager.executor.shutdown(wait=True)
             app.dependency_overrides.pop(get_vm_manager, None)
+            app.dependency_overrides.pop(get_automation_manager, None)
             engine.dispose()
 
 
