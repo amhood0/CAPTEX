@@ -1,0 +1,33 @@
+---
+- name: Validate the CAPTEX guest with local Ansible
+  hosts: captex_guest
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Create the controlled CAPTEX workspace
+      ansible.builtin.file:
+        path: /opt/captex/phase5
+        state: directory
+        owner: vagrant
+        group: vagrant
+        mode: "0750"
+
+    - name: Copy the approved Phase 5 fixture
+      ansible.builtin.copy:
+        src: ../files/phase5-message.txt
+        dest: /opt/captex/phase5/message.txt
+        owner: vagrant
+        group: vagrant
+        mode: "0640"
+
+    - name: Run the approved harmless validation command
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/printf
+          - "CAPTEX_ANSIBLE_OK\n"
+      register: validation
+      changed_when: false
+
+    - name: Show the returned validation output
+      ansible.builtin.debug:
+        var: validation.stdout

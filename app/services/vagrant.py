@@ -105,3 +105,15 @@ class VagrantService:
 
     def stop(self) -> CommandResult:
         return self.command("halt", "default", timeout=180)
+
+    def bootstrap_ansible(self) -> CommandResult:
+        """Run only the fixed guest bootstrap provisioner."""
+        return self.command("provision", "default", "--provision-with", "ansible-bootstrap", timeout=900)
+
+    def upload(self, source: Path, destination: str) -> CommandResult:
+        """Upload one caller-approved project path to a fixed guest destination."""
+        return self.command("upload", str(source.resolve()), destination, "default", timeout=120)
+
+    def guest_command(self, command: str, timeout: int = 300) -> CommandResult:
+        """Execute a service-owned command string through Vagrant SSH."""
+        return self.command("ssh", "default", "-c", command, timeout=timeout)

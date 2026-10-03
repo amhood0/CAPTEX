@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Ansible automation</h1>
+<p>Configure and validate the managed Ubuntu guest with Ansible running inside the VM.</p>
+{% if environment %}
+<p>Target: <a href="/environments/{{ environment.id }}/edit">{{ environment.name }}</a></p>
+<div class="d-flex gap-2 my-3">
+  <button class="btn btn-outline-primary" data-automation-url="/api/environments/{{ environment.id }}/automation/connectivity">Check connectivity</button>
+  <button class="btn btn-outline-primary" data-automation-url="/api/environments/{{ environment.id }}/automation/prepare">Prepare Ansible and transfer files</button>
+  <button class="btn btn-success" data-automation-url="/api/environments/{{ environment.id }}/automation/validate">Run validation playbook</button>
+</div>
+{% else %}
+<div class="alert alert-info">Register the managed Ubuntu environment from <a href="/virtualization">Virtualization</a> first.</div>
+{% endif %}
+<p id="automationMessage" role="status" aria-live="polite">Loading last operation...</p>
+<p id="automationError" class="text-danger" role="alert"></p>
+<p class="text-muted">The VM must already be running. Operations continue in the background and share the VM operation lock.</p>
+<ol id="automationSteps"></ol>
+<details><summary>Last operation output</summary><pre id="automationOutput" class="bg-light p-3"></pre></details>
+<script src="{{ url_for('static', path='/js/automation.js') }}" defer></script>
+{% endblock %}
