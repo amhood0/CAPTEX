@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Admin - Capability Test Management Platform{% endblock %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <h1>Admin</h1>
+        <p class="text-muted">Set up, inspect, and troubleshoot the managed test infrastructure. Normal capability runs handle these steps automatically.</p>
+    </div>
+</div>
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h2 class="h4">Environments</h2>
+                <p>View and manage test-environment records, operating-system details, architecture, and infrastructure mappings.</p>
+                <a href="/environments" class="btn btn-outline-primary">Manage environments</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h2 class="h4">Virtualization</h2>
+                <p>Check host prerequisites, register the managed Ubuntu environment, inspect VM status, and manually start or stop the VM.</p>
+                <a href="/virtualization" class="btn btn-outline-primary">Open virtualization tools</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h2 class="h4">Ansible diagnostics</h2>
+                <p>Test SSH connectivity, prepare Ansible inside the guest, transfer fixed assets, and run the diagnostic playbook.</p>
+                <a href="/automation" class="btn btn-outline-primary">Open Ansible tools</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

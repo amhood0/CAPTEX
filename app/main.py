@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from pathlib import Path
 from app.config import settings
-from app.routers import automation, capabilities, environments, test_plans, test_runs, pages, forms, virtualization
+from app.routers import artifacts, automated_runs, automation, capabilities, environments, test_plans, test_runs, pages, forms, virtualization
 
 # Create FastAPI app
 app = FastAPI(
@@ -26,6 +26,8 @@ if static_path.exists():
 # Include routers
 app.include_router(virtualization.router, tags=["virtualization"])
 app.include_router(automation.router, tags=["automation"])
+app.include_router(automated_runs.router, tags=["automated-runs"])
+app.include_router(artifacts.router, tags=["artifacts"])
 app.include_router(forms.router, tags=["forms"])
 app.include_router(pages.router, tags=["pages"])
 app.include_router(capabilities.router, tags=["capabilities"])

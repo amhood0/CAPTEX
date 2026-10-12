@@ -1,3 +1,4 @@
+# CAPTEX Phase 5: one managed Ubuntu VM with guest-local Ansible.
 Vagrant.configure("2") do |config|
   config.vm.box = "bento/ubuntu-24.04"
   config.vm.box_version = "202510.26.0"

@@ -89,6 +89,11 @@ class CapabilityVersionCreate(CapabilityVersionBase, InputModel):
     capability_id: int
 
 
+class CapabilityWithVersionCreate(CapabilityBase, InputModel):
+    """Create a capability and its required initial executable version together."""
+    initial_version: CapabilityVersionBase
+
+
 class CapabilityVersionUpdate(UpdateModel):
     """Update capability version schema"""
     version: Optional[str] = Field(None, min_length=1, max_length=50)

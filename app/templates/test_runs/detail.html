@@ -8,6 +8,7 @@
         <h1>Test Run #{{ test_run.id }}</h1>
         <p class="text-muted">Test execution details and results</p>
         {% if test_run.status not in ['completed', 'failed'] %}
+        {% if test_run.status == 'queued' %}<button id="executeAutomated" class="btn btn-primary" data-run-id="{{ test_run.id }}">Run automated test</button>{% endif %}
         <button class="btn btn-outline-primary" data-api-action="/api/test-runs/{{ test_run.id }}?status=running" data-method="PUT">Start manual run</button>
         <button class="btn btn-success" data-api-action="/api/test-runs/{{ test_run.id }}?status=completed" data-method="PUT" data-confirm="Complete this run? Its results will become read-only.">Complete run</button>
         <button class="btn btn-outline-danger" data-api-action="/api/test-runs/{{ test_run.id }}?status=failed" data-method="PUT" data-confirm="Mark this run as an execution error?">Mark run failed</button>
@@ -17,6 +18,18 @@
         <a href="/test-runs" class="btn btn-secondary">Back to Runs</a>
     </div>
 </div>
+
+{% if test_run.status not in ['completed', 'failed'] %}
+<div id="automatedProgress" class="card mb-4" data-run-id="{{ test_run.id }}" hidden>
+    <div class="card-body">
+        <div class="d-flex justify-content-between"><strong>Automated run progress</strong><span id="automatedProgressLabel">{{ test_run.status|replace('_', ' ')|title }}</span></div>
+        <div class="progress my-2" role="progressbar" aria-label="Automated run progress" aria-valuemin="0" aria-valuemax="100">
+            <div id="automatedProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 10%">10%</div>
+        </div>
+        <p id="automatedProgressMessage" class="mb-0">Reading current operation status...</p>
+    </div>
+</div>
+{% endif %}
 
 <div class="row mb-4">
     <div class="col-md-6">
@@ -88,7 +101,7 @@
                                     <th>Actual</th>
                                     <th>Exit Code</th>
                                     <th>Duration</th>
-                                    <th>Actions</th>
+                                    {% if test_run.status not in ['completed', 'failed'] %}<th>Actions</th>{% endif %}
                                 </tr>
                             </thead>
                             <tbody>
@@ -110,16 +123,13 @@
                                         <td><code>{{ result.actual_result[:30] if result.actual_result else 'N/A' }}</code></td>
                                         <td>{{ result.exit_code if result.exit_code is not none else 'N/A' }}</td>
                                         <td>{{ result.duration if result.duration is not none else 'N/A' }} ms</td>
-                                        <td>
-                                            {% if test_run.status not in ['completed', 'failed'] %}
+                                        {% if test_run.status not in ['completed', 'failed'] %}<td>
                                             <a href="/test-results/{{ result.id }}/edit" class="btn btn-sm btn-primary">Record / edit</a>
                                             <button class="btn btn-sm btn-outline-danger" data-api-action="/api/test-results/{{ result.id }}" data-confirm="Clear this recorded result?">Clear</button>
-                                            {% endif %}
-                                            <a href="#result{{ result.id }}" class="btn btn-sm btn-outline-info">Details</a>
-                                        </td>
+                                        </td>{% endif %}
                                     </tr>
                                     <tr id="result{{ result.id }}">
-                                        <td colspan="7">
+                                        <td colspan="{{ 7 if test_run.status not in ['completed', 'failed'] else 6 }}">
                                             <details class="p-3"><summary>Full results and output</summary><strong>Expected result:</strong><pre>{{ result.expected_result or '' }}</pre><strong>Actual result:</strong><pre>{{ result.actual_result or '' }}</pre>
                                                 {% if result.stdout %}
                                                     <div class="mb-3">
@@ -153,4 +163,5 @@
         </div>
     </div>
 </div>
+{% if test_run.status not in ['completed', 'failed'] %}<script src="{{ url_for('static', path='js/automated_run.js') }}"></script>{% endif %}
 {% endblock %}

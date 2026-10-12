@@ -5,7 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Capability, CapabilityVersion
-from app.schemas import CapabilityCreate, CapabilityResponse, CapabilityUpdate, CapabilityVersionCreate, CapabilityVersionResponse, CapabilityVersionUpdate
+from app.schemas import CapabilityCreate, CapabilityResponse, CapabilityUpdate, CapabilityVersionCreate, CapabilityVersionResponse, CapabilityVersionUpdate, CapabilityWithVersionCreate
+from app.routers.artifacts import get_artifact_store
+from app.services.artifacts import ArtifactError
 
 router = APIRouter(prefix="/api/capabilities", tags=["capabilities"])
 
@@ -36,6 +38,27 @@ def create_capability(
     db.commit()
     db.refresh(db_capability)
     return db_capability
+
+
+@router.post("/with-version", response_model=CapabilityResponse, status_code=201)
+def create_capability_with_version(payload: CapabilityWithVersionCreate, db: Session = Depends(get_db),
+                                   artifacts=Depends(get_artifact_store)):
+    """Atomically create a capability and a configured initial version."""
+    if db.query(Capability).filter(Capability.name == payload.name).first():
+        raise HTTPException(400, "Capability with this name already exists")
+    version_data = payload.initial_version.model_dump()
+    if not version_data.get("artifact_path") or not version_data.get("execution_command"):
+        raise HTTPException(400, "Choose an artifact and execution command for the initial version")
+    try:
+        artifacts.resolve(version_data["artifact_path"])
+    except ArtifactError as error:
+        raise HTTPException(400, str(error)) from error
+    capability = Capability(**payload.model_dump(exclude={"initial_version"}))
+    capability.versions.append(CapabilityVersion(**version_data))
+    db.add(capability)
+    db.commit()
+    db.refresh(capability)
+    return capability
 
 
 @router.get("/{capability_id}", response_model=CapabilityResponse)
@@ -121,7 +144,8 @@ def list_versions(
 def create_version(
     capability_id: int,
     version: CapabilityVersionCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    artifacts=Depends(get_artifact_store),
 ):
     """Create a new capability version"""
     # Check if capability exists
@@ -131,6 +155,11 @@ def create_version(
     
     if version.capability_id != capability_id:
         raise HTTPException(status_code=400, detail="Capability ID mismatch")
+    if version.artifact_path:
+        try:
+            artifacts.resolve(version.artifact_path)
+        except ArtifactError as error:
+            raise HTTPException(400, str(error)) from error
 
     # Validate version uniqueness per capability
     existing = db.query(CapabilityVersion).filter(
@@ -168,7 +197,8 @@ def update_version(
     capability_id: int,
     version_id: int,
     version: CapabilityVersionUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    artifacts=Depends(get_artifact_store),
 ):
     """Update a capability version"""
     db_version = db.query(CapabilityVersion).filter(
@@ -186,6 +216,11 @@ def update_version(
         ).first()
         if existing:
             raise HTTPException(status_code=409, detail="Version already exists for this capability")
+    if version.artifact_path:
+        try:
+            artifacts.resolve(version.artifact_path)
+        except ArtifactError as error:
+            raise HTTPException(400, str(error)) from error
     for key, value in version.model_dump(exclude_unset=True).items():
         setattr(db_version, key, value)
     

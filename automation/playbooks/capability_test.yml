@@ -1,0 +1,36 @@
+---
+- name: Execute a CAPTEX capability test plan
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Remove the previous capability deployment
+      ansible.builtin.file:
+        path: /opt/captex/current
+        state: absent
+    - name: Create the isolated capability workspace
+      ansible.builtin.file:
+        path: /opt/captex/current
+        state: directory
+        owner: vagrant
+        group: vagrant
+        mode: "0750"
+    - name: Replace the deployed capability
+      ansible.builtin.copy:
+        src: /tmp/captex-phase6/artifact/
+        dest: /opt/captex/current/
+        owner: vagrant
+        group: vagrant
+        mode: preserve
+    - name: Execute tests with the fixed structured runner
+      ansible.builtin.command:
+        argv:
+          - python3
+          - /tmp/captex-phase6/capability_runner.py
+          - /tmp/captex-phase6/manifest.json
+          - /tmp/captex-phase6/results.json
+      register: captex_results
+      changed_when: false
+    - name: Verify structured results were produced
+      ansible.builtin.assert:
+        that: "'CAPTEX_RESULTS_READY' in captex_results.stdout"
