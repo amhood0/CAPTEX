@@ -20,6 +20,10 @@ class OperationManager:
         self.service = service or VagrantService()
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="captex-vm")
 
+    @property
+    def operation_path(self):
+        return self.directory / "vm-operation.json"
+
     def _acquire(self):
         self.directory.mkdir(parents=True, exist_ok=True)
         handle = (self.directory / "vm.lock").open("a+b")
@@ -42,11 +46,11 @@ class OperationManager:
     def _save(self, operation):
         temporary = self.directory / f"{uuid4().hex}.tmp"
         temporary.write_text(json.dumps(operation), encoding="utf-8")
-        temporary.replace(self.directory / "vm-operation.json")
+        temporary.replace(self.operation_path)
 
     def state(self):
         try:
-            operation = json.loads((self.directory / "vm-operation.json").read_text(encoding="utf-8"))
+            operation = json.loads(self.operation_path.read_text(encoding="utf-8"))
         except FileNotFoundError:
             return {"status": "idle"}
         except (ValueError, OSError):
@@ -58,7 +62,7 @@ class OperationManager:
                 return operation
             try:
                 # Reload after locking: another worker may have just finished.
-                operation = json.loads((self.directory / "vm-operation.json").read_text(encoding="utf-8"))
+                operation = json.loads(self.operation_path.read_text(encoding="utf-8"))
                 if operation.get("status") == "running":
                     operation.update(status="interrupted", message="The server stopped before the operation finished. Refresh VM status before proceeding.", completed_at=utc_stamp())
                     self._save(operation)

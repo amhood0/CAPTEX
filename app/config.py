@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     
     # Database
     DATABASE_URL: str = f"sqlite:///{BASE_DIR}/app.db"
+    DATA_DIR: Path = Field(BASE_DIR / ".data", validation_alias="CAPTEX_DATA_DIR")
     
     # Application
     APP_NAME: str = "Capability Test Management Platform"

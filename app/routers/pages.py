@@ -11,6 +11,7 @@ from app.models import Capability, CapabilityVersion, Environment, TestPlan, Tes
 import jinja2
 from app.services.history import history_query, load_run_details, RUN_STATUSES, OUTCOMES
 from app.services.statistics import run_statistics
+from app.services.artifacts import store as artifact_store
 from collections import Counter
 
 # Setup templates
@@ -59,6 +60,12 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
     return HTMLResponse(html)
 
 
+@router.get("/admin", response_class=HTMLResponse)
+def admin_page(request: Request):
+    """Infrastructure setup and diagnostic tools outside the normal run workflow."""
+    return HTMLResponse(render_template("admin.html", {}, request=request))
+
+
 @router.get("/capabilities", response_class=HTMLResponse)
 def list_capabilities(request: Request, db: Session = Depends(get_db)):
     """List all capabilities"""
@@ -67,6 +74,7 @@ def list_capabilities(request: Request, db: Session = Depends(get_db)):
     html = render_template("capabilities/list.html", {
         "request": request,
         "capabilities": capabilities,
+        "artifacts": artifact_store.list(),
     }, request=request)
     return HTMLResponse(html)
 
@@ -100,6 +108,7 @@ def capability_detail(request: Request, capability_id: int, db: Session = Depend
         "versions": versions,
         "test_plans": test_plans,
         "recent_runs": recent_runs,
+        "artifacts": artifact_store.list(),
     }, request=request)
     return HTMLResponse(html)
 
@@ -202,10 +211,13 @@ def edit_version(request: Request, capability_id: int, version_id: int, db: Sess
     if version is None or version.capability_id != capability_id:
         return HTMLResponse(render_template("404.html", {}, request=request), status_code=404)
     fields = [("version", "Version", "text", True), ("description", "Description", "textarea", False)]
+    fields += [("artifact_path", "Capability artifact", "select", False)]
     fields += [(name, name.replace("_", " ").title(), "text", False) for name in
-               ("artifact_path", "repository_url", "commit_hash", "entry_point", "execution_command")]
+               ("repository_url", "commit_hash", "entry_point", "execution_command")]
     return HTMLResponse(render_template("edit.html", {
         "title": "Edit version", "record": version, "fields": fields,
         "endpoint": f"/api/capabilities/{capability_id}/versions/{version_id}",
         "back": f"/capabilities/{capability_id}",
+        "choices": {"artifact_path": [(item["id"], f'{item["name"]} ({item["source"]})')
+                                       for item in artifact_store.list()]},
     }, request=request))

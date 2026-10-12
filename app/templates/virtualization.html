@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Virtualization</h1>
+<div class="d-flex justify-content-between align-items-center"><h1>Virtualization</h1><a href="/admin" class="btn btn-secondary">Back to Admin</a></div>
 <p>Manage one Ubuntu 24.04 VM through Vagrant and VMware Workstation. Starting the VM does not run capability tests.</p>
 <p>Box: <code>{{ box }}</code>, version <code>{{ box_version }}</code>. Resources: 2 CPUs, 2 GB RAM.</p>
 {% if environment %}

@@ -20,7 +20,6 @@
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newVersionModal">
             + New Version
         </button>
-        <a href="/capabilities/{{ capability.id }}/edit" class="btn btn-outline-primary">Edit capability</a>
         <a href="/capabilities" class="btn btn-secondary">Back</a>
     </div>
 </div>
@@ -47,7 +46,7 @@
                                     <br><small>Entry: {{ version.entry_point }}</small>
                                 {% endif %}
                                 <div class="mt-2">
-                                    <a href="/capabilities/{{ capability.id }}/versions/{{ version.id }}/edit" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    <button class="btn btn-sm btn-outline-primary edit-version" data-bs-toggle="modal" data-bs-target="#editVersionModal" data-id="{{ version.id }}" data-version="{{ version.version }}" data-description="{{ version.description or '' }}" data-artifact="{{ version.artifact_path or '' }}" data-entry-point="{{ version.entry_point or '' }}" data-command="{{ version.execution_command or '' }}">Edit</button>
                                     <button class="btn btn-sm btn-outline-danger" onclick="deleteVersion({{ capability.id }}, {{ version.id }})">Delete</button>
                                 </div>
                             </li>
@@ -147,6 +146,20 @@
 <p>{{ stats.passed }} PASS, {{ stats.not_passed }} FAIL, {{ stats.errors }} ERROR. Pass rate: {{ (stats.pass_rate|string + '%') if stats.pass_rate is not none else 'Not available' }}.</p>
 <a href="/test-runs?capability_id={{ capability.id }}">View all history for this capability</a>
 </div></section>
+<!-- Edit Version Modal -->
+<div class="modal fade" id="editVersionModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title">Edit Version</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<form id="editVersionForm"><div class="modal-body">
+<input id="editVersionId" type="hidden">
+<div class="mb-3"><label for="editVersionName" class="form-label">Version</label><input id="editVersionName" class="form-control" required></div>
+<div class="mb-3"><label for="editVersionDescription" class="form-label">Description</label><textarea id="editVersionDescription" class="form-control"></textarea></div>
+<div class="mb-3"><label for="editVersionArtifact" class="form-label">Capability artifact</label><select id="editVersionArtifact" class="form-select" data-artifact-picker required>{% for artifact in artifacts %}<option value="{{ artifact.id }}">{{ artifact.name }} ({{ artifact.source }})</option>{% endfor %}</select></div>
+<div class="mb-3"><label for="editVersionFile" class="form-label">Upload replacement ZIP</label><div class="input-group"><input id="editVersionFile" type="file" class="form-control" accept=".zip,application/zip"><button type="button" class="btn btn-outline-primary" data-artifact-upload data-file-input="editVersionFile" data-artifact-select="editVersionArtifact" data-status-target="editVersionUploadStatus">Upload</button></div><div id="editVersionUploadStatus" class="form-text"></div></div>
+<div class="mb-3"><label for="editVersionEntry" class="form-label">Entry point</label><input id="editVersionEntry" class="form-control"></div>
+<div class="mb-3"><label for="editVersionCommand" class="form-label">Execution command</label><input id="editVersionCommand" class="form-control" required></div>
+<p id="editVersionError" class="text-danger" role="alert"></p>
+</div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save version</button></div></form>
+</div></div></div>
 <!-- New Version Modal -->
 <div class="modal fade" id="newVersionModal" tabindex="-1">
     <div class="modal-dialog">
@@ -164,6 +177,19 @@
                     <div class="mb-3">
                         <label for="verDescription" class="form-label">Description</label>
                         <textarea class="form-control" id="verDescription" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="verArtifact" class="form-label">Capability artifact</label>
+                        <select class="form-select" id="verArtifact" data-artifact-picker required>
+                            <option value="">Select an artifact</option>
+                            {% for artifact in artifacts %}<option value="{{ artifact.id }}">{{ artifact.name }} ({{ artifact.source }})</option>{% endfor %}
+                        </select>
+                        <div class="form-text">Choose a bundled example or upload a ZIP from this computer.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="verArtifactUpload" class="form-label">Upload local capability ZIP</label>
+                        <div class="input-group"><input type="file" class="form-control" id="verArtifactUpload" accept=".zip,application/zip"><button type="button" class="btn btn-outline-primary" data-artifact-upload data-file-input="verArtifactUpload" data-artifact-select="verArtifact" data-status-target="artifactUploadStatus">Upload</button></div>
+                        <div id="artifactUploadStatus" class="form-text" role="status"></div>
                     </div>
                     <div class="mb-3">
                         <label for="verEntryPoint" class="form-label">Entry Point</label>
@@ -227,6 +253,7 @@ document.getElementById('newVersionForm').addEventListener('submit', async (e) =
         capability_id: {{ capability.id }},
         version: document.getElementById('verVersion').value,
         description: document.getElementById('verDescription').value,
+        artifact_path: document.getElementById('verArtifact').value,
         entry_point: document.getElementById('verEntryPoint').value,
         execution_command: document.getElementById('verCommand').value
     };
@@ -251,5 +278,25 @@ document.getElementById('newVersionForm').addEventListener('submit', async (e) =
         alert('Error creating version');
     }
 });
+
+document.querySelectorAll('.edit-version').forEach(button => button.addEventListener('click', () => {
+    document.getElementById('editVersionId').value = button.dataset.id;
+    document.getElementById('editVersionName').value = button.dataset.version;
+    document.getElementById('editVersionDescription').value = button.dataset.description;
+    document.getElementById('editVersionArtifact').value = button.dataset.artifact;
+    document.getElementById('editVersionEntry').value = button.dataset.entryPoint;
+    document.getElementById('editVersionCommand').value = button.dataset.command;
+    document.getElementById('editVersionError').textContent = '';
+}));
+
+document.getElementById('editVersionForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const id = document.getElementById('editVersionId').value;
+    const response = await fetch(`/api/capabilities/{{ capability.id }}/versions/${id}`, {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({version: document.getElementById('editVersionName').value, description: document.getElementById('editVersionDescription').value, artifact_path: document.getElementById('editVersionArtifact').value, entry_point: document.getElementById('editVersionEntry').value, execution_command: document.getElementById('editVersionCommand').value})});
+    const body = await response.json();
+    if (!response.ok) { document.getElementById('editVersionError').textContent = window.apiErrorMessage(body); return; }
+    location.reload();
+});
 </script>
+<script src="{{ url_for('static', path='js/artifact_picker.js') }}"></script>
 {% endblock %}

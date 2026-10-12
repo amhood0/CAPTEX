@@ -65,7 +65,7 @@
 
 <!-- New Capability Modal -->
 <div class="modal fade" id="newCapabilityModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Create New Capability</h5>
@@ -85,6 +85,14 @@
                         <label for="capDescription" class="form-label">Description</label>
                         <textarea class="form-control" id="capDescription" rows="3"></textarea>
                     </div>
+                    <hr><h6>Initial version</h6>
+                    <div class="mb-3"><label for="capVersion" class="form-label">Version</label><input class="form-control" id="capVersion" required></div>
+                    <div class="mb-3"><label for="capVersionDescription" class="form-label">Version description</label><textarea class="form-control" id="capVersionDescription" rows="2"></textarea></div>
+                    <div class="mb-3"><label for="capArtifact" class="form-label">Capability artifact</label><select class="form-select" id="capArtifact" data-artifact-picker required><option value="">Select an artifact</option>{% for artifact in artifacts %}<option value="{{ artifact.id }}">{{ artifact.name }} ({{ artifact.source }})</option>{% endfor %}</select></div>
+                    <div class="mb-3"><label for="capArtifactFile" class="form-label">Upload local capability ZIP</label><div class="input-group"><input id="capArtifactFile" type="file" class="form-control" accept=".zip,application/zip"><button type="button" class="btn btn-outline-primary" data-artifact-upload data-file-input="capArtifactFile" data-artifact-select="capArtifact" data-status-target="capArtifactStatus">Upload</button></div><div id="capArtifactStatus" class="form-text" role="status"></div></div>
+                    <div class="mb-3"><label for="capEntryPoint" class="form-label">Entry point</label><input class="form-control" id="capEntryPoint"></div>
+                    <div class="mb-3"><label for="capCommand" class="form-label">Execution command</label><input class="form-control" id="capCommand" required placeholder="python3 run.py"></div>
+                    <p id="capCreateError" class="text-danger" role="alert"></p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -121,11 +129,18 @@ document.getElementById('newCapabilityForm').addEventListener('submit', async (e
         name: document.getElementById('capName').value,
         category: document.getElementById('capCategory').value,
         description: document.getElementById('capDescription').value,
-        active: true
+        active: true,
+        initial_version: {
+            version: document.getElementById('capVersion').value,
+            description: document.getElementById('capVersionDescription').value,
+            artifact_path: document.getElementById('capArtifact').value,
+            entry_point: document.getElementById('capEntryPoint').value,
+            execution_command: document.getElementById('capCommand').value
+        }
     };
     
     try {
-        const response = await fetch('/api/capabilities', {
+        const response = await fetch('/api/capabilities/with-version', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -134,15 +149,16 @@ document.getElementById('newCapabilityForm').addEventListener('submit', async (e
         });
         
         if (response.ok) {
-            location.reload();
+            const capability = await response.json();
+            location.assign(`/capabilities/${capability.id}`);
         } else {
             const error = await response.json();
-            alert(`Error: ${error.detail}`);
+            document.getElementById('capCreateError').textContent = window.apiErrorMessage(error);
         }
     } catch (error) {
-        console.error('Error:', error);
-        alert('Error creating capability');
+        document.getElementById('capCreateError').textContent = error.message;
     }
 });
 </script>
+<script src="{{ url_for('static', path='js/artifact_picker.js') }}"></script>
 {% endblock %}

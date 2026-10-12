@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Ansible automation</h1>
+<div class="d-flex justify-content-between align-items-center"><h1>Ansible automation</h1><a href="/admin" class="btn btn-secondary">Back to Admin</a></div>
 <p>Configure and validate the managed Ubuntu guest with Ansible running inside the VM.</p>
 {% if environment %}
 <p>Target: <a href="/environments/{{ environment.id }}/edit">{{ environment.name }}</a></p>

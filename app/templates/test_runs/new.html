@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>New manual test run</h1>
-<p>Select a version, an active plan with enabled cases, and an environment. Execute tests manually and record their outcomes here.</p>
+<h1>New test run</h1>
+<p>Select a version, an active plan with enabled cases, and an environment. After creation, record results manually or run a configured capability automatically against the managed Ubuntu VM.</p>
 <p>Need to set up a test? <a href="/capabilities">Manage capabilities</a>, <a href="/test-plans">manage plans and cases</a>, or <a href="/environments/new">add an environment</a>.</p>
 {% if not environments %}<p class="text-danger">Create an environment before creating a run.</p>{% endif %}
 <form id="runForm" class="col-md-8">
