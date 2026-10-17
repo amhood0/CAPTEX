@@ -4,6 +4,10 @@ CAPTEX is a local FastAPI web application for managing capabilities, test plans,
 and test results. It supports manual result recording and automated execution in
 a Vagrant-managed Ubuntu VM using VMware and Ansible.
 
+# Releases
+
+You can find official released versions of CAPTEX here: https://github.com/amhood0/CAPTEX/releases/tag/0.1.0
+
 ## Code organization
 
 Requests enter through `app/main.py` and the routes in `app/routers/`. Routes
