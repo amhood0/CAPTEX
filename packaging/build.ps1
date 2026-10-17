@@ -8,6 +8,7 @@ Push-Location $ProjectRoot
 try {
     # Avoid shared pytest temp directories with permissions from another session.
     $TestTemp = Join-Path $ProjectRoot ("build\pytest-" + [guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $TestTemp) | Out-Null
     & $Python -m pytest -q --basetemp $TestTemp
     if ($LASTEXITCODE -ne 0) { throw "Tests failed; packaging stopped." }
     if (Test-Path -LiteralPath $PackageRoot) { Remove-Item -LiteralPath $PackageRoot -Recurse -Force }
