@@ -6,7 +6,7 @@ a Vagrant-managed Ubuntu VM using VMware and Ansible.
 
 # Releases
 
-You can find official released versions of CAPTEX here: https://github.com/amhood0/CAPTEX/releases/tag/0.1.0
+You can find official released versions of CAPTEX here: https://github.com/amhood0/CAPTEX/releases
 
 ## Code organization
 
