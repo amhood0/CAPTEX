@@ -2,14 +2,15 @@
 from pathlib import Path
 from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
-from app.config import BASE_DIR
+from app.config import MANAGED_ROOT
 from app.database import get_db
 from app.models import Environment
 from app.routers.pages import render_template
 from app.services.vagrant import TEMPLATE, BOX, BOX_VERSION
 from app.services.vm_operations import manager
+from app.runtime import mark_setup_complete, register_managed_environment
 
 def require_same_origin(request: Request):
     """Prevent other browser sites from triggering local VM commands."""
@@ -21,6 +22,12 @@ def require_same_origin(request: Request):
 
 router = APIRouter(dependencies=[Depends(require_same_origin)])
 
+DOWNLOADS = {
+    "vmware": "https://support.broadcom.com/group/ecx/productdownloads?subfamily=VMware%20Workstation%20Pro",
+    "vagrant": "https://developer.hashicorp.com/vagrant/install",
+    "utility": "https://developer.hashicorp.com/vagrant/install/vmware",
+}
+
 
 def get_vm_manager():
     return manager
@@ -30,7 +37,7 @@ def is_managed(path):
     if not path:
         return False
     value = Path(path)
-    return (value if value.is_absolute() else BASE_DIR / value).resolve() == TEMPLATE.resolve()
+    return (value if value.is_absolute() else MANAGED_ROOT / value).resolve() == TEMPLATE.resolve()
 
 
 def managed_environment(db):
@@ -43,18 +50,23 @@ def virtualization_page(request: Request, db: Session = Depends(get_db)):
         box_version=BOX_VERSION), request=request))
 
 
+@router.get("/setup", response_class=HTMLResponse)
+def setup_page(request: Request):
+    return HTMLResponse(render_template("setup.html", dict(box=BOX, box_version=BOX_VERSION,
+        downloads=DOWNLOADS), request=request))
+
+
+@router.post("/api/setup/complete")
+def complete_setup():
+    mark_setup_complete()
+    return {"redirect": "/dashboard"}
+
+
 @router.post("/api/virtualization/environment")
 def register_environment(db: Session = Depends(get_db)):
     environment = managed_environment(db)
     if environment is None:
-        name = "CAPTEX Ubuntu 24.04 VM"
-        if db.query(Environment).filter_by(name=name).first():
-            raise HTTPException(409, "An environment with this name exists. Rename it before registering the managed VM.")
-        environment = Environment(name=name, os="Ubuntu", os_version="24.04", architecture="x86_64",
-            vagrant_path="environments/ubuntu24", description="Single Vagrant-managed VMware test environment")
-        db.add(environment)
-        db.commit()
-        db.refresh(environment)
+        environment = register_managed_environment(db)
     return {"id": environment.id, "name": environment.name}
 
 
@@ -66,6 +78,11 @@ def operation(vm=Depends(get_vm_manager)):
 @router.post("/api/virtualization/check", status_code=202)
 def check_prerequisites(vm=Depends(get_vm_manager)):
     return vm.submit("check")
+
+
+@router.post("/api/virtualization/install/{component}", status_code=202)
+def install_vagrant_component(component: Literal["plugin", "box"], vm=Depends(get_vm_manager)):
+    return vm.submit("install_plugin" if component == "plugin" else "install_box")
 
 
 @router.post("/api/environments/{environment_id}/vm/{action}", status_code=202)

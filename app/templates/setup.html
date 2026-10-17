@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Set up CAPTEX{% endblock %}
+{% block content %}
+<div class="mx-auto" style="max-width: 900px">
+  <h1>Set up CAPTEX</h1>
+  <p class="lead">CAPTEX is ready for capability and manual test management. Automated VMware tests need the tools below.</p>
+  <div class="alert alert-success">CAPTEX database and local application storage are ready.</div>
+  <div class="card mb-3"><div class="card-body">
+    <h2 class="h5">Automated test prerequisites</h2>
+    <p>Install missing host tools from their official pages, then restart CAPTEX and check again.</p>
+    <div class="d-flex gap-2 flex-wrap mb-3">
+      <a class="btn btn-outline-primary" href="{{ downloads.vmware }}" target="_blank" rel="noopener">Get VMware Workstation Pro</a>
+      <a class="btn btn-outline-primary" href="{{ downloads.vagrant }}" target="_blank" rel="noopener">Get Vagrant</a>
+      <a class="btn btn-outline-primary" href="{{ downloads.utility }}" target="_blank" rel="noopener">Get VMware Utility</a>
+    </div>
+    <button id="checkSetup" class="btn btn-primary">Check prerequisites</button>
+    <p id="setupStatus" class="mt-3" role="status" aria-live="polite"></p>
+    <div id="setupChecks"></div>
+    <details class="mt-2"><summary>Diagnostic output</summary><pre id="setupOutput" class="bg-light p-3"></pre></details>
+  </div></div>
+  <p>The provider plugin and Ubuntu box can be installed after Vagrant is available:</p>
+  <pre class="bg-light p-3">vagrant plugin install vagrant-vmware-desktop
+vagrant box add {{ box }} --provider vmware_desktop --box-version {{ box_version }}</pre>
+  <div class="d-flex gap-2 flex-wrap mb-3">
+    <button class="btn btn-outline-primary" data-setup-install="plugin">Install provider plugin</button>
+    <button class="btn btn-outline-primary" data-setup-install="box">Download pinned Ubuntu box</button>
+  </div>
+  <button id="finishSetup" class="btn btn-success">Continue to CAPTEX</button>
+  <p class="text-muted mt-2">You may continue now and finish automated-test setup later under Admin.</p>
+  <p id="setupError" class="text-danger" role="alert"></p>
+</div>
+<script src="{{ url_for('static', path='/js/setup.js') }}" defer></script>
+{% endblock %}

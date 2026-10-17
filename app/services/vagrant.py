@@ -8,9 +8,9 @@ import re
 import shutil
 import subprocess
 import tempfile
-from app.config import BASE_DIR
+from app.config import MANAGED_ROOT
 
-TEMPLATE = BASE_DIR / "environments" / "ubuntu24"
+TEMPLATE = MANAGED_ROOT / "environments" / "ubuntu24"
 BOX = "bento/ubuntu-24.04"
 BOX_VERSION = "202510.26.0"
 PROVIDER = "vmware_desktop"
@@ -102,6 +102,15 @@ class VagrantService:
 
     def start(self) -> CommandResult:
         return self.command("up", "default", "--provider=" + PROVIDER, "--no-provision", timeout=900)
+
+    def install_plugin(self) -> CommandResult:
+        """Install only CAPTEX's fixed VMware provider plugin."""
+        return self.command("plugin", "install", "vagrant-vmware-desktop", timeout=900)
+
+    def install_box(self) -> CommandResult:
+        """Download only CAPTEX's pinned Ubuntu VMware box."""
+        return self.command("box", "add", BOX, "--provider", PROVIDER,
+                            "--box-version", BOX_VERSION, timeout=1800)
 
     def stop(self) -> CommandResult:
         return self.command("halt", "default", timeout=180)

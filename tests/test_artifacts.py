@@ -61,18 +61,6 @@ def test_upload_api_and_referenced_delete_protection(client, db, tmp_path):
         app.dependency_overrides.pop(get_artifact_store, None)
 
 
-def test_combined_capability_creation_is_atomic(client, db):
-    payload = {"name": "Combined", "category": "Test", "initial_version": {
-        "version": "1", "artifact_path": "bundled:phase6-demo", "execution_command": "python3 run.py"}}
-    response = client.post("/api/capabilities/with-version", json=payload)
-    assert response.status_code == 201 and len(response.json()["versions"]) == 1
-    invalid = {"name": "Must not remain", "category": "Test", "initial_version": {
-        "version": "1", "artifact_path": "managed:missing", "execution_command": "python3 run.py"}}
-    assert client.post("/api/capabilities/with-version", json=invalid).status_code == 400
-    from app.models import Capability
-    assert db.query(Capability).filter_by(name="Must not remain").first() is None
-
-
 def test_combined_capability_creation_is_atomic(client):
     payload = {"name": "Combined", "category": "Tool", "description": "One workflow", "active": True,
                "initial_version": {"version": "1.0", "artifact_path": "bundled:phase6-demo",

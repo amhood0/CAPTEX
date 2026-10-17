@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from uuid import uuid4
 from fastapi import HTTPException
-from app.config import BASE_DIR
+from app.config import RUNTIME_DIR
 from app.services.vagrant import VagrantService
 
 
@@ -16,7 +16,7 @@ def utc_stamp():
 
 class OperationManager:
     def __init__(self, directory=None, service=None):
-        self.directory = Path(directory or BASE_DIR / ".runtime")
+        self.directory = Path(directory or RUNTIME_DIR)
         self.service = service or VagrantService()
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="captex-vm")
 
@@ -71,7 +71,7 @@ class OperationManager:
         return operation
 
     def submit(self, action, environment_id=None):
-        if action not in {"check", "status", "start", "stop"}:
+        if action not in {"check", "status", "start", "stop", "install_plugin", "install_box"}:
             raise HTTPException(422, "Unsupported VM operation")
         handle = self._acquire()
         operation = dict(id=uuid4().hex, action=action, environment_id=environment_id,
@@ -96,6 +96,12 @@ class OperationManager:
                     return
             if action == "check":
                 operation.update(status="succeeded", message="All prerequisites are ready.")
+                return
+            if action in {"install_plugin", "install_box"}:
+                result = self.service.install_plugin() if action == "install_plugin" else self.service.install_box()
+                operation["command"] = result.to_dict()
+                operation.update(status="succeeded" if result.exit_code == 0 and not result.timed_out else "failed",
+                                 message="Installation finished." if result.exit_code == 0 and not result.timed_out else "Installation failed; inspect the output.")
                 return
             if action in {"start", "stop"}:
                 # Check provider before halt, and do not mutate on unknown status.
