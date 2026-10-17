@@ -39,9 +39,9 @@ def test_adopt_preserves_data_and_backs_up(tmp_path):
     assert backup and backup.exists()
     for database in [path, backup]:
         with closing(sqlite3.connect(database)) as connection:
-            assert connection.execute("SELECT name FROM capabilities").fetchone()[0] == "Keep me"
+            assert connection.execute("SELECT name FROM capabilities WHERE name = 'Keep me'").fetchone()[0] == "Keep me"
     with closing(sqlite3.connect(path)) as connection:
-        assert connection.execute("SELECT version_num FROM alembic_version").fetchone()[0] == "001_initial"
+        assert connection.execute("SELECT version_num FROM alembic_version").fetchone()[0] == "003_run_names"
 
 
 def test_unknown_schema_is_not_stamped(tmp_path):

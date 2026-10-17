@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Troubleshooting - Capability Test Management Platform{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-lg-9 col-xl-8">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1>Troubleshooting</h1>
+            <a href="/admin" class="btn btn-secondary">Back to Admin</a>
+        </div>
+        <p>Normal automated runs start the managed VM when needed, prepare the guest, execute tests, and collect results. Use the Admin tools when setup or execution needs attention. Manual testing works without the virtualization prerequisites.</p>
+
+        <section class="card mb-3">
+            <div class="card-body">
+                <h2 class="h4"><a href="/environments">Environments</a></h2>
+                <p>Environment records describe where a test ran: operating system, version, architecture, and infrastructure mapping. Creating a record does not create or start a virtual machine.</p>
+                <p class="mb-0">Automated execution currently supports the managed Ubuntu VMware environment. Other records can describe environments used for manual testing. If the managed record is missing, register it from Virtualization.</p>
+            </div>
+        </section>
+        <section class="card mb-3">
+            <div class="card-body">
+                <h2 class="h4"><a href="/virtualization">Virtualization</a></h2>
+                <p>Checks the host prerequisites and controls the managed Ubuntu VM through Vagrant and VMware Workstation.</p>
+                <ul class="mb-0">
+                    <li><strong>Check prerequisites:</strong> identifies missing VMware, Vagrant, provider plugin, utility, or base-box requirements and shows the next action.</li>
+                    <li><strong>Refresh VM status:</strong> checks the VM's current state, especially after a timeout or interrupted operation.</li>
+                    <li><strong>Start VM / Stop VM:</strong> changes the VM's power state. Starting it here does not execute a capability test.</li>
+                </ul>
+            </div>
+        </section>
+        <section class="card mb-3">
+            <div class="card-body">
+                <h2 class="h4"><a href="/automation">Ansible diagnostics</a></h2>
+                <p>Ansible runs inside the Ubuntu guest to prepare files and execute automation. Start the VM before using these diagnostic controls.</p>
+                <ul>
+                    <li><strong>Check connectivity:</strong> verifies that CAPTEX can execute a basic command in the guest over SSH.</li>
+                    <li><strong>Prepare Ansible and transfer files:</strong> installs Ansible if needed and copies the diagnostic assets into the guest. Initial preparation needs internet access.</li>
+                    <li><strong>Run validation playbook:</strong> prepares the guest and runs a diagnostic playbook, checking for its success marker.</li>
+                </ul>
+                <p class="mb-0">A successful diagnostic confirms the automation path works. It does not execute your capability's test plan or guarantee that its tests will pass.</p>
+            </div>
+        </section>
+
+        <section class="mb-4">
+            <h2 class="h4">When an automated run cannot finish</h2>
+            <ol>
+                <li>Open <a href="/virtualization">Virtualization</a>, select <strong>Check prerequisites</strong>, and resolve any missing components.</li>
+                <li>Select <strong>Refresh VM status</strong>. Start the VM if it is stopped and wait for the operation to finish. The first start can take longer while the base image downloads.</li>
+                <li>Open <a href="/automation">Ansible diagnostics</a>. Check connectivity, then run the validation playbook. Expand <strong>Last operation output</strong> to inspect a failed step.</li>
+                <li>Return to <a href="/test-runs">Test Runs</a>. Retry a queued run, or create a new run if the previous one has finished or failed.</li>
+                <li>Open the run details and inspect each case's expected result, actual result, standard output, and standard error.</li>
+            </ol>
+            <p>Only one infrastructure operation can run at a time. If CAPTEX reports that the VM is busy, wait for the current operation to finish before retrying.</p>
+            <p>A <strong>FAIL</strong> result means a test's expectation was not met; inspect the capability and test case. An <strong>ERROR</strong> result can indicate a timeout or execution problem. The deliberately broken Text Summary example is expected to fail its word-count check.</p>
+            <p>CAPTEX stops a VM it started for an automated run. A VM you started manually remains running afterward; use <strong>Stop VM</strong> when you have finished with it.</p>
+        </section>
+    </div>
+</div>
+{% endblock %}

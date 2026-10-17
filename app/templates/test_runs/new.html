@@ -5,6 +5,7 @@
 <p>Need to set up a test? <a href="/capabilities">Manage capabilities</a>, <a href="/test-plans">manage plans and cases</a>, or <a href="/environments/new">add an environment</a>.</p>
 {% if not environments %}<p class="text-danger">Create an environment before creating a run.</p>{% endif %}
 <form id="runForm" class="col-md-8">
+<label class="form-label" for="runName">Run name</label><input id="runName" class="form-control mb-3" maxlength="255" value="{{ run_name }}" placeholder="Optional run name">
 <label class="form-label" for="capability">Capability</label><select id="capability" class="form-select mb-3" required></select>
 <label class="form-label" for="version">Version</label><select id="version" class="form-select mb-3" required></select>
 <label class="form-label" for="plan">Test plan</label><select id="plan" class="form-select mb-3" required></select>
@@ -15,6 +16,7 @@
 <button class="btn btn-primary">Create run</button> <a href="/test-runs" class="btn btn-secondary">Cancel</a>
 </form>
 <script>
+const selected = {{ selected|tojson }};
 const capabilities = {{ capabilities|tojson }};
 function populate(id, items) {
     const select = document.getElementById(id);
@@ -24,16 +26,24 @@ function populate(id, items) {
 function updateChoices() {
     const capability = capabilities.find(c => c.id === Number(document.getElementById('capability').value));
     populate('version', capability?.versions || []);
+    if (capability?.versions.length > 1) {
+        const version = document.getElementById('version');
+        version.add(new Option('Choose a version', ''), 0);
+        version.value = '';
+    }
     populate('plan', capability?.plans || []);
     document.getElementById('runError').textContent = !capability?.versions.length || !capability?.plans.length ? 'Create a version and an active plan with enabled cases before creating a run.' : '';
 }
 populate('capability', capabilities);
+if (selected.capability_id) document.getElementById('capability').value = selected.capability_id;
 document.getElementById('capability').addEventListener('change', updateChoices);
 updateChoices();
+if (selected.plan_id) document.getElementById('plan').value = selected.plan_id;
 document.getElementById('runForm').addEventListener('submit', async event => {
     event.preventDefault();
     try {
         const response = await fetch('/api/test-runs', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({
+            name: document.getElementById('runName').value.trim() || null,
             capability_version_id: Number(document.getElementById('version').value), test_plan_id: Number(document.getElementById('plan').value),
             environment_id: Number(document.getElementById('environment').value), initiated_by: document.getElementById('initiated').value
         })});

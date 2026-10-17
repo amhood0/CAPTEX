@@ -1,4 +1,4 @@
-"""Opt-in real API-to-VM automated test verification."""
+"""Opt-in real Phase 6 API-to-VM automated test verification."""
 import argparse
 import tempfile
 from pathlib import Path
@@ -29,7 +29,7 @@ def main():
         with factory() as db:
             capability = Capability(name="Phase 6 live demo", category="Validation")
             db.add(capability); db.flush()
-            version = CapabilityVersion(capability_id=capability.id, version="1", artifact_path="bundled:phase6-demo",
+            version = CapabilityVersion(capability_id=capability.id, version="1", artifact_path="bundled:file-creation",
                                         execution_command="python3 run.py")
             plan = TestPlan(capability_id=capability.id, name="Three real validations")
             db.add_all([version, plan]); db.flush()

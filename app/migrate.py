@@ -36,6 +36,10 @@ def migrate(url: str) -> Path | None:
             unstamped = bool(tables) and "alembic_version" not in tables
             if unstamped:
                 differences = compare_metadata(MigrationContext.configure(connection), Base.metadata)
+                # The original unstamped schema predates optional run names.
+                differences = [difference for difference in differences if not (
+                    difference[0] == "add_column" and difference[2] == "test_runs"
+                    and difference[3].name == "name")]
                 if differences:
                     raise RuntimeError("Existing schema differs from Phase 1; migration stopped without changes.")
             if engine.dialect.name == "sqlite" and tables:

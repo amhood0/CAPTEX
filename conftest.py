@@ -15,7 +15,9 @@ def db(tmp_path):
     engine.dispose()
 
 @pytest.fixture
-def client(db):
+def client(db, monkeypatch):
+    # Each API test owns its schema and data; do not initialize the real runtime.
+    monkeypatch.setattr("app.main.initialize_runtime", lambda: None)
     def override_db():
         yield db
     app.dependency_overrides[get_db] = override_db

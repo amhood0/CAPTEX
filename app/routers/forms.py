@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import Capability, Environment, TestPlan, TestCase, TestResult
+from app.models import Capability, Environment, TestPlan, TestCase, TestResult, TestRun
 from app.routers.pages import render_template
 
 router = APIRouter()
@@ -88,10 +88,23 @@ def edit_result(request: Request, result_id: int, db: Session = Depends(get_db))
 
 
 @router.get("/test-runs/new")
-def new_run(request: Request, db: Session = Depends(get_db)):
+def new_run(request: Request, plan_id: int | None = None, db: Session = Depends(get_db)):
+    plan = get_record(db, TestPlan, plan_id) if plan_id is not None else None
+    if plan and (not plan.active or not plan.capability.active or not any(c.enabled for c in plan.test_cases)):
+        raise HTTPException(400, "Choose an active capability and plan with enabled test cases")
+    selected = {"capability_id": plan.capability_id, "plan_id": plan.id} if plan else {}
+
     capabilities = [{"id": c.id, "name": c.name,
         "versions": [{"id": v.id, "name": v.version} for v in c.versions],
         "plans": [{"id": p.id, "name": p.name} for p in c.test_plans if p.active and any(t.enabled for t in p.test_cases)]}
         for c in db.query(Capability).filter(Capability.active.is_(True)).order_by(Capability.name)]
     return HTMLResponse(render_template("test_runs/new.html", {"capabilities": capabilities,
+        "selected": selected, "run_name": plan.name if plan else "",
         "environments": db.query(Environment).order_by(Environment.name).all()}, request=request))
+
+
+@router.get("/test-runs/{run_id}/edit")
+def edit_run_name(request: Request, run_id: int, db: Session = Depends(get_db)):
+    run = get_record(db, TestRun, run_id)
+    return form(request, "Rename test run", {"name": run.name or f"Test Run #{run.id}"},
+                [("name", "Run name", "text", True)], f"/api/test-runs/{run_id}/name", f"/test-runs/{run_id}")

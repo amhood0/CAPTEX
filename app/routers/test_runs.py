@@ -11,7 +11,7 @@ from app.models import (
     TestResult, TestCase
 )
 from app.schemas import (
-    TestRunCreate, TestRunResponse,
+    TestRunCreate, TestRunResponse, TestRunRename,
     TestResultCreate, TestResultResponse, TestResultUpdate
 )
 
@@ -233,3 +233,14 @@ def delete_test_result(
         setattr(db_result, field, None)
     db.commit()
     return {"message": "Result cleared; the case remains in the run"}
+
+
+@router.put("/test-runs/{run_id}/name", response_model=TestRunResponse)
+def rename_run(run_id: int, payload: TestRunRename, db: Session = Depends(get_db)):
+    run = db.get(TestRun, run_id)
+    if run is None:
+        raise HTTPException(404, "Test run not found")
+    run.name = payload.name
+    db.commit()
+    db.refresh(run)
+    return run

@@ -1,4 +1,4 @@
-"""Run the browser workflow against a disposable database and server.
+"""Run the Phase 2 browser workflow against a disposable database and server.
 
 Install requirements-browser.txt, then run: python -m scripts.browser_smoke
 Uses the installed Microsoft Edge browser in headless mode.
@@ -63,19 +63,19 @@ def main():
                 page.locator("#capName").fill("Combined browser capability")
                 page.locator("#capCategory").fill("Browser")
                 page.locator("#capVersion").fill("1.0")
-                page.locator("#capArtifact").select_option("bundled:phase6-demo")
+                page.locator("#capArtifact").select_option("bundled:file-creation")
                 page.locator("#capCommand").fill("python3 run.py")
                 page.locator("#newCapabilityForm").get_by_role("button", name="Create", exact=True).click()
                 page.wait_for_url("**/capabilities/*")
                 expect(page.get_by_role("button", name="Edit capability", exact=True)).to_have_count(0)
                 page.goto(base + f"/capabilities/{cap}")
                 expect(page.locator("#verArtifactUpload")).to_have_count(1)
-                expect(page.locator("#verArtifact option[value='bundled:phase6-demo']")).to_have_count(1)
+                expect(page.locator("#verArtifact option[value='bundled:file-creation']")).to_have_count(1)
                 page.locator(".edit-version").first.click()
-                page.locator("#editVersionArtifact").select_option("bundled:phase6-demo")
+                page.locator("#editVersionArtifact").select_option("bundled:file-creation")
                 page.locator("#editVersionCommand").fill("python3 run.py")
                 page.locator("#editVersionForm button.btn-primary").click()
-                expect(page.locator("details code").filter(has_text="bundled:phase6-demo")).to_have_count(1)
+                expect(page.locator("details code").filter(has_text="bundled:file-creation")).to_have_count(1)
                 page.goto(base + "/environments/new")
                 page.get_by_label("Name", exact=True).fill("Browser Ubuntu")
                 page.get_by_label("Operating system", exact=True).fill("Ubuntu")

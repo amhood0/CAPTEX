@@ -84,7 +84,7 @@
                             <tbody>
                                 {% for run in recent_runs %}
                                     <tr>
-                                        <td><strong>{{ run.id }}</strong></td>
+                                        <td><strong>{{ run.name or ("Test Run #" ~ run.id) }}</strong></td>
                                         <td>{{ run.capability_version.capability.name }} / {{ run.capability_version.version }}</td>
                                         <td>{{ run.test_plan.name }}</td>
                                         <td>
@@ -109,7 +109,7 @@
                         </table>
                     </div>
                 {% else %}
-                    <p class="text-muted">No test runs yet. <a href="/test-runs/new">Create a manual run</a> to get started.</p>
+                    <p class="text-muted">No test runs yet. <a href="/test-runs/new">Create a new run</a> to get started.</p>
                 {% endif %}
             </div>
         </div>

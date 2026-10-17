@@ -8,6 +8,7 @@ from app.services.vagrant import VagrantService, CommandResult
 from app.services.vm_operations import OperationManager
 from app.routers.virtualization import get_vm_manager
 from app.main import app
+from app.runtime import register_managed_environment
 
 
 class FakeVagrant:
@@ -33,6 +34,14 @@ class FakeVagrant:
         self.calls.append("stop")
         self.current = "poweroff"
         return CommandResult(["vagrant", "halt"], 0, "stopped", "")
+
+    def install_plugin(self):
+        self.calls.append("install_plugin")
+        return CommandResult(["vagrant", "plugin", "install"], 0, "installed", "")
+
+    def install_box(self):
+        self.calls.append("install_box")
+        return CommandResult(["vagrant", "box", "add"], 0, "installed", "")
 
 
 def finish(manager, action):
@@ -130,7 +139,12 @@ def test_fixed_command_arguments(monkeypatch):
     service = VagrantService(run)
     service.start()
     service.stop()
-    assert calls == [(["vagrant.exe", "up", "default", "--provider=vmware_desktop", "--no-provision"], 900), (["vagrant.exe", "halt", "default"], 180)]
+    service.install_plugin()
+    service.install_box()
+    assert calls == [(["vagrant.exe", "up", "default", "--provider=vmware_desktop", "--no-provision"], 900),
+                     (["vagrant.exe", "halt", "default"], 180),
+                     (["vagrant.exe", "plugin", "install", "vagrant-vmware-desktop"], 900),
+                     (["vagrant.exe", "box", "add", "bento/ubuntu-24.04", "--provider", "vmware_desktop", "--box-version", "202510.26.0"], 1800)]
 
 
 def test_real_runner_capture_and_timeout():
@@ -194,3 +208,46 @@ def test_output_is_bounded():
     assert result.exit_code == 0
     assert result.stdout.startswith("[Earlier output truncated]")
     assert len(result.stdout) < 66000
+
+
+def test_setup_page_completion_and_fixed_installs(client, tmp_path, monkeypatch):
+    vm = OperationManager(tmp_path / "operations", FakeVagrant())
+    app.dependency_overrides[get_vm_manager] = lambda: vm
+    monkeypatch.setattr("app.runtime.settings.DATA_DIR", tmp_path)
+    try:
+        assert "Set up CAPTEX" in client.get("/setup").text
+        assert client.post("/api/setup/complete").json() == {"redirect": "/dashboard"}
+        assert (tmp_path / "config" / "setup-complete").is_file()
+        for component, call in (("plugin", "install_plugin"), ("box", "install_box")):
+            assert client.post(f"/api/virtualization/install/{component}").status_code == 202
+            vm.executor.submit(lambda: None).result(timeout=5)
+            assert call in vm.service.calls
+        assert client.post("/api/virtualization/install/unknown").status_code == 422
+    finally:
+        app.dependency_overrides.pop(get_vm_manager, None)
+        vm.executor.shutdown()
+
+
+def test_managed_environment_registration_is_automatic_and_idempotent(db):
+    first = register_managed_environment(db)
+    second = register_managed_environment(db)
+    assert first.id == second.id
+    assert first.vagrant_path == "environments/ubuntu24"
+
+
+def test_exit_is_guarded_and_requests_graceful_shutdown(client, monkeypatch):
+    stopped = []
+    app.state.request_shutdown = lambda: stopped.append(True)
+    terminal = lambda: {"status": "idle"}
+    monkeypatch.setattr("app.main.vm_manager.state", terminal)
+    monkeypatch.setattr("app.main.automation_manager.state", terminal)
+    monkeypatch.setattr("app.main.automated_run_manager.state", terminal)
+    try:
+        assert client.post("/api/application/exit", headers={"Origin": "https://other.example"}).status_code == 403
+        response = client.post("/api/application/exit")
+        assert response.status_code == 200
+        assert stopped == [True]
+        monkeypatch.setattr("app.main.automated_run_manager.state", lambda: {"status": "executing"})
+        assert client.post("/api/application/exit").status_code == 409
+    finally:
+        del app.state.request_shutdown

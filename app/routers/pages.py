@@ -66,6 +66,12 @@ def admin_page(request: Request):
     return HTMLResponse(render_template("admin.html", {}, request=request))
 
 
+@router.get("/admin/troubleshooting", response_class=HTMLResponse)
+def troubleshooting_page(request: Request):
+    """Static guidance for the existing infrastructure tools."""
+    return HTMLResponse(render_template("troubleshooting.html", {}, request=request))
+
+
 @router.get("/capabilities", response_class=HTMLResponse)
 def list_capabilities(request: Request, db: Session = Depends(get_db)):
     """List all capabilities"""

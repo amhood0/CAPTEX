@@ -6,14 +6,14 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 
-from app.config import BASE_DIR
+from app.config import RUNTIME_DIR
 from app.services.ansible import AnsibleService
 from app.services.vm_operations import OperationManager, utc_stamp
 
 
 class AutomationManager(OperationManager):
     def __init__(self, directory=None, service=None):
-        self.directory = Path(directory or BASE_DIR / ".runtime")
+        self.directory = Path(directory or RUNTIME_DIR)
         self.service = service or AnsibleService()
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="captex-ansible")
 

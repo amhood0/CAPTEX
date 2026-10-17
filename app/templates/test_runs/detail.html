@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Test Run #{{ test_run.id }} - Capability Test Management Platform{% endblock %}
+{% block title %}{{ test_run.name or ("Test Run #" ~ test_run.id) }} - Capability Test Management Platform{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
     <div class="col-md-8">
-        <h1>Test Run #{{ test_run.id }}</h1>
+        <h1>{{ test_run.name or ("Test Run #" ~ test_run.id) }}</h1>
+        <a href="/test-runs/{{ test_run.id }}/edit" class="btn btn-outline-primary mb-2">Rename run</a>
         <p class="text-muted">Test execution details and results</p>
         {% if test_run.status not in ['completed', 'failed'] %}
         {% if test_run.status == 'queued' %}<button id="executeAutomated" class="btn btn-primary" data-run-id="{{ test_run.id }}">Run automated test</button>{% endif %}

@@ -5,7 +5,7 @@
 <p>Capability: {{ plan.capability.name }}</p>
 <a href="/test-plans/{{ plan.id }}/edit" class="btn btn-outline-primary">Edit plan</a>
 <a href="/test-plans/{{ plan.id }}/cases/new" class="btn btn-primary">Add test case</a>
-<a href="/test-runs/new" class="btn btn-outline-primary">New Run</a>
+<a href="/test-runs/new?plan_id={{ plan.id }}" class="btn btn-outline-primary">New Run</a>
 <a href="/test-plans" class="btn btn-secondary">Back to plans</a>
 <table class="table mt-3">
 <thead><tr><th>Order</th><th>Test case</th><th>Type</th><th>Expected result</th><th>Enabled</th><th>Actions</th></tr></thead>
