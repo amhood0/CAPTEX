@@ -6,14 +6,24 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from pathlib import Path
 from app.config import IS_FROZEN, settings
-from app.runtime import setup_complete
+from app.runtime import setup_complete, initialize_runtime
+from contextlib import asynccontextmanager
 from app.services.vm_operations import manager as vm_manager
 from app.services.automation_operations import manager as automation_manager
 from app.services.automated_runs import manager as automated_run_manager
 from app.routers import artifacts, automated_runs, automation, capabilities, environments, test_plans, test_runs, pages, forms, virtualization
 
+@asynccontextmanager
+async def lifespan(app):
+    # The packaged launcher initializes before starting the server.
+    if not IS_FROZEN:
+        initialize_runtime()
+    yield
+
+
 # Create FastAPI app
 app = FastAPI(
+    lifespan=lifespan,
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description="A platform for managing and executing capability tests"

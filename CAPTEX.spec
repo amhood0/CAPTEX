@@ -2,6 +2,8 @@
 from PyInstaller.utils.hooks import collect_submodules
 
 hiddenimports = collect_submodules("uvicorn") + collect_submodules("sqlalchemy.dialects.sqlite")
+# Alembic loads bundled migration files dynamically, outside import analysis.
+hiddenimports += ["app.services.demos"]
 
 a = Analysis(
     ["captex_launcher.py"],
@@ -37,6 +39,7 @@ exe = EXE(
     upx=True,
     console=False,
     disable_windowed_traceback=False,
+    icon="packaging/captex.ico",
 )
 coll = COLLECT(
     exe,

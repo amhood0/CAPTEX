@@ -146,6 +146,7 @@ class TestRun(Base):
     __tablename__ = "test_runs"
     
     id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255))
     capability_version_id = Column(Integer, ForeignKey("capability_versions.id"), nullable=False, index=True)
     test_plan_id = Column(Integer, ForeignKey("test_plans.id"), nullable=False, index=True)
     environment_id = Column(Integer, ForeignKey("environments.id"), nullable=False, index=True)

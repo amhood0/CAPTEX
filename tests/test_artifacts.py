@@ -63,12 +63,12 @@ def test_upload_api_and_referenced_delete_protection(client, db, tmp_path):
 
 def test_combined_capability_creation_is_atomic(client):
     payload = {"name": "Combined", "category": "Tool", "description": "One workflow", "active": True,
-               "initial_version": {"version": "1.0", "artifact_path": "bundled:phase6-demo",
+               "initial_version": {"version": "1.0", "artifact_path": "bundled:file-creation",
                                    "entry_point": "run.py", "execution_command": "python3 run.py"}}
     response = client.post("/api/capabilities/with-version", json=payload)
     assert response.status_code == 201
     body = response.json()
-    assert body["name"] == "Combined" and body["versions"][0]["artifact_path"] == "bundled:phase6-demo"
+    assert body["name"] == "Combined" and body["versions"][0]["artifact_path"] == "bundled:file-creation"
     invalid = payload | {"name": "Not persisted", "initial_version": payload["initial_version"] | {"artifact_path": "managed:missing"}}
     assert client.post("/api/capabilities/with-version", json=invalid).status_code == 400
     assert all(item["name"] != "Not persisted" for item in client.get("/api/capabilities").json())

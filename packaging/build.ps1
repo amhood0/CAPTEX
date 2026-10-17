@@ -6,7 +6,9 @@ if (-not (Test-Path -LiteralPath $Python)) { throw "Create .venv and install req
 
 Push-Location $ProjectRoot
 try {
-    & $Python -m pytest -q
+    # Avoid shared pytest temp directories with permissions from another session.
+    $TestTemp = Join-Path $ProjectRoot ("build\pytest-" + [guid]::NewGuid().ToString("N"))
+    & $Python -m pytest -q --basetemp $TestTemp
     if ($LASTEXITCODE -ne 0) { throw "Tests failed; packaging stopped." }
     if (Test-Path -LiteralPath $PackageRoot) { Remove-Item -LiteralPath $PackageRoot -Recurse -Force }
     & $Python -m PyInstaller --noconfirm --distpath (Join-Path $PackageRoot "dist") --workpath (Join-Path $PackageRoot "build") CAPTEX.spec

@@ -233,6 +233,7 @@ class TestCaseResponse(TestCaseBase):
 # ============================================================================
 
 class TestRunBase(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
     """Base test run schema"""
     capability_version_id: int
     test_plan_id: int
@@ -245,7 +246,12 @@ class TestRunCreate(TestRunBase, InputModel):
     pass
 
 
+class TestRunRename(InputModel):
+    name: str = Field(min_length=1, max_length=255)
+
+
 class TestRunResponse(BaseModel):
+    name: Optional[str] = None
     """Test run response schema"""
     id: int
     capability_version_id: int

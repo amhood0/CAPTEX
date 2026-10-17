@@ -1,0 +1,3 @@
+CAPTEX checks software behavior.
+Repeatable tests reveal regressions.
+Results preserve useful evidence.

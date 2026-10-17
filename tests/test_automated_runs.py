@@ -1,4 +1,4 @@
-"""Execution, persistence, validation, and endpoint tests."""
+"""Phase 6 execution, persistence, validation, and endpoint tests."""
 import json
 import subprocess
 import sys
@@ -50,7 +50,7 @@ class FakeExecution:
         ]}
 
 
-def seed(db, artifact_path="bundled:phase6-demo", command="python3 run.py"):
+def seed(db, artifact_path="bundled:file-creation", command="python3 run.py"):
     capability = Capability(name="Automated demo", category="Test")
     db.add(capability); db.flush()
     version = CapabilityVersion(capability_id=capability.id, version="1", artifact_path=artifact_path,
@@ -84,7 +84,7 @@ def test_fixed_guest_runner_evaluates_all_supported_types(tmp_path):
 
 
 def test_artifacts_are_restricted_to_project_directory():
-    assert ArtifactStore().resolve("bundled:phase6-demo").name == "phase6-demo"
+    assert ArtifactStore().resolve("bundled:file-creation").name == "file-creation"
     with pytest.raises(ValueError):
         ArtifactStore().resolve("bundled:../automation")
     with pytest.raises(ValueError):
